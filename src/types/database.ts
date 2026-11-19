@@ -33,6 +33,8 @@ type OrderStatus =
 type DisputeResolution = "pending" | "refund_buyer" | "release_seller";
 type PayoutStatus = "pending_release" | "ready_to_payout" | "paid_out" | "cancelled";
 type ReportStatus = "open" | "resolved" | "dismissed";
+type MessageType = "text" | "offer" | "system";
+type OfferStatus = "pending" | "accepted" | "rejected" | "superseded";
 
 type OrderRow = {
   id: string;
@@ -449,6 +451,108 @@ export type Database = {
           },
         ];
       };
+      conversations: {
+        Row: {
+          id: string;
+          campus_id: string;
+          listing_id: string;
+          buyer_id: string;
+          seller_id: string;
+          accepted_offer_idr: number | null;
+          last_message_text: string;
+          last_message_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          campus_id: string;
+          listing_id: string;
+          buyer_id: string;
+          seller_id: string;
+          accepted_offer_idr?: number | null;
+          last_message_text?: string;
+          last_message_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          campus_id?: string;
+          listing_id?: string;
+          buyer_id?: string;
+          seller_id?: string;
+          accepted_offer_idr?: number | null;
+          last_message_text?: string;
+          last_message_at?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      messages: {
+        Row: {
+          id: string;
+          conversation_id: string;
+          sender_id: string;
+          message_type: MessageType;
+          body: string;
+          offer_amount_idr: number | null;
+          offer_status: OfferStatus | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          conversation_id: string;
+          sender_id: string;
+          message_type?: MessageType;
+          body: string;
+          offer_amount_idr?: number | null;
+          offer_status?: OfferStatus | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          conversation_id?: string;
+          sender_id?: string;
+          message_type?: MessageType;
+          body?: string;
+          offer_amount_idr?: number | null;
+          offer_status?: OfferStatus | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      reviews: {
+        Row: {
+          id: string;
+          order_id: string;
+          listing_id: string;
+          seller_id: string;
+          reviewer_id: string;
+          rating: number;
+          comment: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          listing_id: string;
+          seller_id: string;
+          reviewer_id: string;
+          rating: number;
+          comment: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          order_id?: string;
+          listing_id?: string;
+          seller_id?: string;
+          reviewer_id?: string;
+          rating?: number;
+          comment?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       public_profiles: {
@@ -530,6 +634,8 @@ export type Database = {
       dispute_resolution: DisputeResolution;
       payout_status: PayoutStatus;
       report_status: ReportStatus;
+      message_type: MessageType;
+      offer_status: OfferStatus;
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -552,4 +658,7 @@ export type Order = Tables<"orders">;
 export type Dispute = Tables<"disputes">;
 export type PayoutEntry = Tables<"payout_ledger">;
 export type Report = Tables<"reports">;
+export type Conversation = Tables<"conversations">;
+export type Message = Tables<"messages">;
+export type Review = Tables<"reviews">;
 export type PublicProfile = Views<"public_profiles">;

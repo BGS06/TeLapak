@@ -10,6 +10,7 @@ import {
   Package,
   Plus,
   ShieldAlert,
+  Star,
   Store,
   Wallet,
 } from "lucide-react";
@@ -29,13 +30,14 @@ import {
   VERIFICATION_LABEL,
 } from "@/config/constants";
 import { isSupabaseConfigured } from "@/lib/env";
-import { formatDateTime, formatIDR, initials, orderCode } from "@/lib/utils";
+import { formatDate, formatDateTime, formatIDR, initials, orderCode } from "@/lib/utils";
 import { signOutAction } from "@/server/actions/auth";
 import { requireProfile, sellerReadiness } from "@/server/auth";
 import {
   getActiveCampusForSession,
   getMyListings,
   getSellerPayoutSummary,
+  getSellerReviewSummary,
 } from "@/server/queries";
 
 export const metadata: Metadata = {
@@ -66,9 +68,10 @@ export default async function ProfilePage() {
     getActiveCampusForSession(),
   ]);
 
-  const [myListings, payoutSummary] = await Promise.all([
+  const [myListings, payoutSummary, reviewSummary] = await Promise.all([
     getMyListings(profile.id),
     getSellerPayoutSummary(profile.id),
+    getSellerReviewSummary(profile.id),
   ]);
 
   const readiness = sellerReadiness(profile);
@@ -123,6 +126,16 @@ export default async function ProfilePage() {
 
               {/* Statistik Singkat Member */}
               <div className="mt-2 flex flex-wrap items-center gap-2.5 text-xs text-[#666666] sm:mt-2.5 sm:gap-3">
+                <span className="inline-flex items-center gap-1">
+                  <Star className="h-3.5 w-3.5 fill-[#f59e0b] text-[#f59e0b]" />
+                  <strong className="font-semibold text-[#171717]">
+                    {reviewSummary.totalReviews > 0
+                      ? reviewSummary.averageRating.toFixed(1)
+                      : "Baru"}
+                  </strong>{" "}
+                  ({reviewSummary.totalReviews} ulasan)
+                </span>
+                <span aria-hidden="true">·</span>
                 <span className="inline-flex items-center gap-1">
                   <Store className="h-3.5 w-3.5 text-[#b3261e]" />
                   <strong className="font-semibold text-[#171717]">{activeListingsCount}</strong>{" "}
@@ -428,6 +441,67 @@ export default async function ProfilePage() {
               <div className="mt-4">
                 <SellerProfileForm profile={profile} />
               </div>
+            </section>
+
+            {/* Rating & Ulasan Pembeli (1-5 Bintang) */}
+            <section className="rounded-lg border border-[#edf2f2] bg-white p-4 sm:p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#edf2f2] pb-3.5">
+                <div>
+                  <h2 className="text-base font-extrabold tracking-tight text-[#171717]">
+                    Ulasan Pembeli ({reviewSummary.totalReviews})
+                  </h2>
+                  <p className="mt-0.5 text-xs text-[#666666]">
+                    Rating bintang 1–5 dari pembeli yang sudah menerima barangmu.
+                  </p>
+                </div>
+                {reviewSummary.totalReviews > 0 && (
+                  <div className="inline-flex items-center gap-1.5 rounded-md bg-[#fef6e6] px-2.5 py-1 text-xs font-extrabold text-[#92400e]">
+                    <Star className="h-4 w-4 fill-[#f59e0b] text-[#f59e0b]" />
+                    <span className="tabular-nums">{reviewSummary.averageRating.toFixed(1)}</span>
+                    <span className="font-normal text-[#8c8c8c]">/ 5.0</span>
+                  </div>
+                )}
+              </div>
+
+              {reviewSummary.reviews.length > 0 ? (
+                <div className="mt-3 divide-y divide-[#edf2f2]">
+                  {reviewSummary.reviews.map((rev) => (
+                    <div key={rev.id} className="py-3 first:pt-1 last:pb-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-[#171717]">
+                            {rev.reviewerFirstName}
+                          </span>
+                          <div className="flex items-center gap-0.5">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <Star
+                                key={i}
+                                className={`h-3.5 w-3.5 ${
+                                  i < rev.rating
+                                    ? "fill-[#f59e0b] text-[#f59e0b]"
+                                    : "text-[#d9dfdf]"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        <span className="text-[11px] text-[#8c8c8c]">
+                          {formatDate(rev.created_at)}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs leading-relaxed text-[#666666]">“{rev.comment}”</p>
+                      <p className="mt-1 text-[11px] text-[#8c8c8c]">
+                        Barang: <span className="font-medium text-[#666666]">{rev.listingTitle}</span>
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-3 text-xs text-[#8c8c8c]">
+                  Belum ada ulasan pembeli. Ulasan akan muncul setelah pembeli mengonfirmasi
+                  penerimaan barang dan memberi rating bintang.
+                </p>
+              )}
             </section>
 
             {/* Riwayat Buku Besar Pencairan (tampil bila sudah ada transaksi) */}

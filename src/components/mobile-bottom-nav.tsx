@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Package, PlusCircle, ShieldCheck, User } from "lucide-react";
+import { Home, MessageSquare, Package, PlusCircle, ShieldCheck, User } from "lucide-react";
 
 export function MobileBottomNav({
   isLoggedIn,
@@ -28,10 +28,10 @@ export function MobileBottomNav({
       active: pathname === "/",
     },
     {
-      href: "/orders",
-      label: "Pesanan",
-      icon: Package,
-      active: pathname.startsWith("/orders"),
+      href: "/messages",
+      label: "Chat",
+      icon: MessageSquare,
+      active: pathname.startsWith("/messages"),
     },
     {
       href: "/sell",
@@ -39,6 +39,12 @@ export function MobileBottomNav({
       icon: PlusCircle,
       active: pathname === "/sell",
       highlight: true,
+    },
+    {
+      href: "/orders",
+      label: "Pesanan",
+      icon: Package,
+      active: pathname.startsWith("/orders"),
     },
     {
       href: isLoggedIn ? "/profile" : "/login",
@@ -65,8 +71,8 @@ export function MobileBottomNav({
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
       <div
-        className={`mx-auto grid max-w-md items-center px-2 py-1.5 ${
-          isAdmin ? "grid-cols-5" : "grid-cols-4"
+        className={`mx-auto grid max-w-md items-center px-1.5 py-1.5 ${
+          isAdmin ? "grid-cols-6" : "grid-cols-5"
         }`}
       >
         {items.map((item) => {
@@ -79,7 +85,7 @@ export function MobileBottomNav({
                 className="group flex flex-col items-center justify-center py-0.5 select-none active:scale-95 transition-transform"
               >
                 <span
-                  className={`flex h-9 items-center gap-1 rounded-full px-3.5 text-xs font-bold shadow-xs transition-colors ${
+                  className={`flex h-9 items-center gap-1 rounded-full px-3 text-xs font-bold shadow-xs transition-colors ${
                     item.active
                       ? "bg-[#8f1c15] text-white"
                       : "bg-[#b3261e] text-white group-hover:bg-[#931d16]"
@@ -96,7 +102,7 @@ export function MobileBottomNav({
             <Link
               key={item.href}
               href={item.href}
-              className={`relative flex flex-col items-center justify-center gap-0.5 rounded-xl py-1 text-[11px] font-semibold select-none active:scale-95 transition-all ${
+              className={`relative flex flex-col items-center justify-center gap-0.5 rounded-xl py-1 text-[10px] font-semibold select-none active:scale-95 transition-all ${
                 item.active ? "text-[#b3261e]" : "text-[#6e675f] hover:text-[#181512]"
               }`}
             >

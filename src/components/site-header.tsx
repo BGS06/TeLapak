@@ -1,5 +1,14 @@
 import Link from "next/link";
-import { ChevronDown, MapPin, Package, Plus, Search, ShieldCheck, User } from "lucide-react";
+import {
+  ChevronDown,
+  MapPin,
+  MessageSquare,
+  Package,
+  Plus,
+  Search,
+  ShieldCheck,
+  User,
+} from "lucide-react";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BUSINESS } from "@/config/business";
@@ -88,13 +97,22 @@ export async function SiteHeader({
               )}
 
               {profile && (
-                <Link
-                  href="/orders"
-                  className="hidden h-9 items-center gap-1.5 rounded-md px-3 text-xs font-medium text-[#666666] transition hover:bg-[#f2f4f4] hover:text-[#171717] md:inline-flex"
-                >
-                  <Package className="h-4 w-4" />
-                  <span>Pesanan</span>
-                </Link>
+                <>
+                  <Link
+                    href="/messages"
+                    className="hidden h-9 items-center gap-1.5 rounded-md px-3 text-xs font-medium text-[#666666] transition hover:bg-[#f2f4f4] hover:text-[#171717] md:inline-flex"
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    <span>Chat</span>
+                  </Link>
+                  <Link
+                    href="/orders"
+                    className="hidden h-9 items-center gap-1.5 rounded-md px-3 text-xs font-medium text-[#666666] transition hover:bg-[#f2f4f4] hover:text-[#171717] md:inline-flex"
+                  >
+                    <Package className="h-4 w-4" />
+                    <span>Pesanan</span>
+                  </Link>
+                </>
               )}
 
               {profile ? (

@@ -1,16 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CheckCircle2, ChevronRight, MapPin, ShieldCheck } from "lucide-react";
+import { CheckCircle2, ChevronRight, MapPin, ShieldCheck, Star } from "lucide-react";
 import { ImageGallery, ItemActions } from "@/app/items/[id]/item-detail-client";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { BUSINESS, calculateFees } from "@/config/business";
 import { USER_TYPE_LABEL, categoryLabel, conditionOf } from "@/config/constants";
 import { publicEnv } from "@/lib/env";
-import { formatIDR, formatRelative, initials } from "@/lib/utils";
+import { formatDate, formatIDR, formatRelative, initials } from "@/lib/utils";
 import { getCurrentProfile } from "@/server/auth";
-import { getListingById } from "@/server/queries";
+import {
+  getBuyerOfferForListing,
+  getListingById,
+  getSellerReviewSummary,
+} from "@/server/queries";
 
 /**
  * OpenGraph metadata wajib (PRD §7.2):
@@ -69,8 +73,14 @@ export default async function ItemDetailPage({
   if (!bundle) notFound();
 
   const { listing, seller, campus } = bundle;
+  const [buyerOffer, sellerReviews] = await Promise.all([
+    getBuyerOfferForListing(listing.id, profile?.id),
+    getSellerReviewSummary(listing.seller_id),
+  ]);
+
   const condition = conditionOf(listing.condition);
-  const fees = calculateFees(listing.price_idr);
+  const effectivePrice = buyerOffer?.acceptedOfferIdr ?? listing.price_idr;
+  const fees = calculateFees(effectivePrice);
   const shareUrl = `${publicEnv.siteUrl}/items/${listing.id}`;
   const isOwnListing = profile?.id === listing.seller_id;
 
@@ -100,9 +110,73 @@ export default async function ItemDetailPage({
 
         {/* Layout 2 Kolom Asimetris Vinted (7 Kolom Galeri : 5 Kolom Sidebar) */}
         <div className="grid gap-6 lg:grid-cols-12 lg:items-start">
-          {/* Kolom Kiri: Galeri Foto */}
-          <div className="lg:col-span-7">
+          {/* Kolom Kiri: Galeri Foto & Ulasan Pembeli */}
+          <div className="space-y-6 lg:col-span-7">
             <ImageGallery images={listing.image_urls} title={listing.title} />
+
+            {/* Daftar Rating & Review Bintang 1-5 untuk Penjual */}
+            <section className="rounded-lg border border-[#edf2f2] bg-white p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#edf2f2] pb-3.5">
+                <div>
+                  <h2 className="text-sm font-bold text-[#171717]">
+                    Rating & Ulasan Penjual ({sellerReviews.totalReviews})
+                  </h2>
+                  <p className="text-xs text-[#666666]">
+                    Ulasan terverifikasi dari pembeli civitas kampus yang telah menyelesaikan
+                    transaksi.
+                  </p>
+                </div>
+                {sellerReviews.totalReviews > 0 && (
+                  <div className="inline-flex items-center gap-1.5 rounded-md bg-[#fef6e6] px-2.5 py-1 text-xs font-extrabold text-[#92400e]">
+                    <Star className="h-4 w-4 fill-[#f59e0b] text-[#f59e0b]" />
+                    <span className="tabular-nums">{sellerReviews.averageRating.toFixed(1)}</span>
+                    <span className="font-normal text-[#8c8c8c]">/ 5.0</span>
+                  </div>
+                )}
+              </div>
+
+              {sellerReviews.reviews.length > 0 ? (
+                <div className="mt-3 divide-y divide-[#edf2f2]">
+                  {sellerReviews.reviews.slice(0, 5).map((rev) => (
+                    <div key={rev.id} className="py-3 first:pt-1 last:pb-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-[#171717]">
+                            {rev.reviewerFirstName}
+                          </span>
+                          <div
+                            className="flex items-center gap-0.5"
+                            aria-label={`Rating ${rev.rating} dari 5 bintang`}
+                          >
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <Star
+                                key={i}
+                                className={`h-3.5 w-3.5 ${
+                                  i < rev.rating
+                                    ? "fill-[#f59e0b] text-[#f59e0b]"
+                                    : "text-[#d9dfdf]"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        <span className="text-[11px] text-[#8c8c8c]">
+                          {formatDate(rev.created_at)}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs leading-relaxed text-[#666666]">“{rev.comment}”</p>
+                      <p className="mt-1 text-[11px] text-[#8c8c8c]">
+                        Membeli: <span className="font-medium text-[#666666]">{rev.listingTitle}</span>
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-3 text-xs text-[#8c8c8c]">
+                  Penjual ini belum memiliki ulasan transaksi.
+                </p>
+              )}
+            </section>
           </div>
 
           {/* Kolom Kanan: Sidebar Sticky Harga, Spesifikasi, Aksi, & Penjual */}
@@ -111,9 +185,16 @@ export default async function ItemDetailPage({
             <div className="rounded-lg border border-[#edf2f2] bg-white p-5">
               {/* Harga & Indikator Perlindungan Pembeli */}
               <div>
-                <p className="tabular-nums text-2xl font-extrabold tracking-tight text-[#171717] sm:text-3xl">
-                  {formatIDR(listing.price_idr)}
-                </p>
+                <div className="flex flex-wrap items-baseline gap-2">
+                  <p className="tabular-nums text-2xl font-extrabold tracking-tight text-[#171717] sm:text-3xl">
+                    {formatIDR(effectivePrice)}
+                  </p>
+                  {buyerOffer?.acceptedOfferIdr && (
+                    <span className="tabular-nums text-sm line-through text-[#8c8c8c]">
+                      {formatIDR(listing.price_idr)}
+                    </span>
+                  )}
+                </div>
                 <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-[#b3261e]">
                   <ShieldCheck className="h-4 w-4 shrink-0" />
                   <span>
@@ -166,7 +247,7 @@ export default async function ItemDetailPage({
                 )}
               </div>
 
-              {/* Tombol Aksi Utama (Beli / Bagikan / Laporkan) */}
+              {/* Tombol Aksi Utama (Beli / Tawar Harga / Chat / Bagikan / Laporkan) */}
               <div className="mt-5 border-t border-[#edf2f2] pt-4">
                 <ItemActions
                   listing={listing}
@@ -180,22 +261,30 @@ export default async function ItemDetailPage({
                   }
                   totalWithGatewayIdr={fees.totalPaid}
                   gatewayFeeIdr={fees.gatewayFee}
+                  acceptedOfferIdr={buyerOffer?.acceptedOfferIdr ?? null}
+                  existingConversationId={buyerOffer?.conversationId ?? null}
                 />
               </div>
             </div>
 
-            {/* Kartu Profil Penjual */}
+            {/* Kartu Profil Penjual + Rating Bintang */}
             <div className="flex items-center justify-between rounded-lg border border-[#edf2f2] bg-white p-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#f2f4f4] text-sm font-bold text-[#171717]">
                   {initials(seller.first_name)}
                 </div>
                 <div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <span className="text-sm font-bold text-[#171717]">{seller.first_name}</span>
                     <span className="rounded bg-[#f2f4f4] px-1.5 py-0.5 text-[11px] font-medium text-[#666666]">
                       {USER_TYPE_LABEL[seller.user_type]}
                     </span>
+                    {sellerReviews.totalReviews > 0 && (
+                      <span className="inline-flex items-center gap-1 rounded bg-[#fef6e6] px-1.5 py-0.5 text-[11px] font-bold text-[#92400e]">
+                        <Star className="h-3 w-3 fill-[#f59e0b] text-[#f59e0b]" />
+                        {sellerReviews.averageRating.toFixed(1)} ({sellerReviews.totalReviews})
+                      </span>
+                    )}
                   </div>
                   {seller.verification_status === "verified" && (
                     <p className="mt-0.5 inline-flex items-center gap-1 text-xs font-semibold text-[#146c43]">
@@ -206,7 +295,7 @@ export default async function ItemDetailPage({
                 </div>
               </div>
               <span className="max-w-[120px] text-right text-[11px] leading-tight text-[#8c8c8c]">
-                WhatsApp dibuka setelah bayar
+                Bisa Chat & Tawar Harga
               </span>
             </div>
 
@@ -215,7 +304,7 @@ export default async function ItemDetailPage({
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#b3261e]" />
               <p className="leading-relaxed">
                 <strong className="font-semibold text-[#171717]">Perlindungan Transaksi:</strong>{" "}
-                Dana ditahan aman hingga kamu mengecek barang secara langsung di{" "}
+                Dana ditahan sementara hingga kamu mengecek barang secara langsung di{" "}
                 <strong className="font-medium text-[#171717]">{listing.meeting_point}</strong>.
               </p>
             </div>

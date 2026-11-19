@@ -9,6 +9,7 @@ import {
   ImagePlus,
   Loader2,
   MessageCircle,
+  Star,
   X,
   XCircle,
 } from "lucide-react";
@@ -24,6 +25,7 @@ import {
   confirmOrderReceivedAction,
   openDisputeAction,
 } from "@/server/actions/orders";
+import { submitOrderReviewAction } from "@/server/actions/reviews";
 
 export function PendingPaymentActions({
   orderId,
@@ -426,5 +428,148 @@ export function DisputeEvidenceUploader({
         className="hidden"
       />
     </label>
+  );
+}
+
+const QUICK_REVIEW_TAGS = [
+  "Barang sesuai deskripsi & foto",
+  "Kondisi mulus & sangat terawat",
+  "Penjual ramah & tepat waktu di titik COD",
+  "Harga sepadan dengan kualitas",
+] as const;
+
+/**
+ * Form Rating Bintang 1-5 & Ulasan Pembeli setelah pesanan selesai (`completed`).
+ */
+export function OrderReviewForm({
+  orderId,
+  sellerName,
+}: {
+  orderId: string;
+  sellerName: string;
+}) {
+  const router = useRouter();
+  const [rating, setRating] = useState(5);
+  const [hoverRating, setHoverRating] = useState<number | null>(null);
+  const [comment, setComment] = useState("");
+  const [isPending, startTransition] = useTransition();
+
+  const activeStars = hoverRating ?? rating;
+  const ratingLabels: Record<number, string> = {
+    1: "1 — Sangat Kurang",
+    2: "2 — Kurang Sesuai",
+    3: "3 — Cukup Baik",
+    4: "4 — Bagus & Sesuai",
+    5: "5 — Sangat Memuaskan!",
+  };
+
+  const handleAddTag = (tag: string) => {
+    setComment((prev) => {
+      if (prev.includes(tag)) return prev;
+      return prev.trim() ? `${prev.trim()}. ${tag}` : tag;
+    });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    startTransition(async () => {
+      const res = await submitOrderReviewAction({
+        orderId,
+        rating,
+        comment,
+      });
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(res.message);
+      router.refresh();
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Pilihan Bintang 1-5 Interaktif */}
+      <div>
+        <span className="block text-xs font-bold text-[#171717]">
+          Bagaimana pengalaman transaksi COD dengan {sellerName}?
+        </span>
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-1" onMouseLeave={() => setHoverRating(null)}>
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                type="button"
+                onClick={() => setRating(star)}
+                onMouseEnter={() => setHoverRating(star)}
+                aria-label={`Beri ${star} bintang`}
+                className="cursor-pointer rounded-md p-1 transition-transform hover:scale-110 active:scale-95"
+              >
+                <Star
+                  className={`h-7 w-7 transition-colors ${
+                    star <= activeStars
+                      ? "fill-[#f59e0b] text-[#f59e0b]"
+                      : "text-[#d9dfdf]"
+                  }`}
+                />
+              </button>
+            ))}
+          </div>
+          <span className="rounded-md bg-[#fef6e6] px-2.5 py-1 text-xs font-bold text-[#92400e]">
+            {ratingLabels[activeStars]}
+          </span>
+        </div>
+      </div>
+
+      {/* Chip Kalimat Cepat */}
+      <div>
+        <span className="mb-1.5 block text-[11px] font-medium text-[#8c8c8c]">
+          Klik untuk menambahkan ke ulasan:
+        </span>
+        <div className="flex flex-wrap gap-1.5">
+          {QUICK_REVIEW_TAGS.map((tag) => (
+            <button
+              key={tag}
+              type="button"
+              onClick={() => handleAddTag(tag)}
+              className="cursor-pointer rounded-full border border-[#d9dfdf] bg-[#f2f4f4] px-2.5 py-1 text-[11px] font-medium text-[#171717] transition hover:border-[#b3261e] hover:bg-[#fdf2f2] hover:text-[#b3261e]"
+            >
+              + {tag}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="mb-1 block text-xs font-bold text-[#171717]">
+          Tulis Ulasan Barang & Penjual
+        </label>
+        <Textarea
+          required
+          minLength={5}
+          maxLength={600}
+          rows={3}
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          placeholder="Ceritakan kondisi barang saat kamu terima di titik temu kampus..."
+        />
+      </div>
+
+      <div className="flex justify-end">
+        <Button type="submit" variant="primary" size="md" disabled={isPending}>
+          {isPending ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Menyimpan Ulasan...
+            </>
+          ) : (
+            <>
+              <Star className="h-4 w-4 fill-current" />
+              Kirim Rating & Ulasan
+            </>
+          )}
+        </Button>
+      </div>
+    </form>
   );
 }

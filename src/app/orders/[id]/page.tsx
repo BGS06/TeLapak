@@ -10,10 +10,12 @@ import {
   MapPin,
   Phone,
   ShieldCheck,
+  Star,
   Wallet,
 } from "lucide-react";
 import {
   DisputeEvidenceUploader,
+  OrderReviewForm,
   PaidHeldActions,
   PendingPaymentActions,
 } from "@/app/orders/[id]/order-actions-client";
@@ -103,7 +105,7 @@ export default async function OrderDetailPage({
   ]);
 
   if (!bundle) notFound();
-  const { order, listing, buyer, seller, sellerContact, dispute, payoutEntry } = bundle;
+  const { order, listing, buyer, seller, sellerContact, dispute, payoutEntry, review } = bundle;
 
   const isBuyer = order.buyer_id === profile.id;
   const isSeller = order.seller_id === profile.id;
@@ -317,6 +319,49 @@ export default async function OrderDetailPage({
               <div className="pt-1">
                 <DisputeEvidenceUploader orderId={order.id} userId={profile.id} />
               </div>
+            )}
+          </section>
+        )}
+
+        {/* Kotak Rating & Review Bintang 1-5 (setelah pesanan completed) */}
+        {order.status === "completed" && (review || isBuyer) && (
+          <section className="rounded-2xl border border-[#e6e0d6] bg-white p-5 space-y-3">
+            <div className="flex items-center justify-between gap-2 border-b border-[#edf2f2] pb-3">
+              <div className="flex items-center gap-2">
+                <Star className="h-4 w-4 fill-[#f59e0b] text-[#f59e0b]" />
+                <h2 className="text-sm font-bold text-[#171717]">
+                  {review ? "Rating & Ulasan Pembeli" : "Beri Rating & Ulasan Transaksi"}
+                </h2>
+              </div>
+              {review && (
+                <div className="flex items-center gap-0.5">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`h-4 w-4 ${
+                        i < review.rating
+                          ? "fill-[#f59e0b] text-[#f59e0b]"
+                          : "text-[#d9dfdf]"
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {review ? (
+              <div className="space-y-1.5 text-xs">
+                <p className="leading-relaxed text-[#171717]">“{review.comment}”</p>
+                <p className="text-[11px] text-[#8c8c8c]">
+                  Diulas oleh <strong className="text-[#666666]">{buyer?.first_name ?? "Pembeli"}</strong> pada{" "}
+                  {formatDateTime(review.created_at)}
+                </p>
+              </div>
+            ) : (
+              <OrderReviewForm
+                orderId={order.id}
+                sellerName={seller?.first_name ?? "Penjual"}
+              />
             )}
           </section>
         )}

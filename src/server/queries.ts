@@ -7,14 +7,17 @@ import { getCurrentProfile } from "@/server/auth";
 import { DEMO_CAMPUS, DEMO_LISTINGS, DEMO_SELLERS } from "@/server/demo-data";
 import type {
   Campus,
+  Conversation,
   Dispute,
   Enums,
   Listing,
+  Message,
   Order,
   PayoutEntry,
   Profile,
   PublicProfile,
   Report,
+  Review,
 } from "@/types/database";
 
 // ---------------------------------------------------------------------
@@ -219,6 +222,7 @@ export interface OrderDetailBundle {
   sellerContact: { full_name: string; whatsapp_number: string | null } | null;
   dispute: (Dispute & { signedEvidenceUrls: string[] }) | null;
   payoutEntry: PayoutEntry | null;
+  review: Review | null;
 }
 
 export async function getOrderDetail(orderId: string): Promise<OrderDetailBundle | null> {
@@ -243,6 +247,7 @@ export async function getOrderDetail(orderId: string): Promise<OrderDetailBundle
     { data: contactRows },
     { data: dispute },
     { data: payoutEntry },
+    { data: review },
   ] = await Promise.all([
     supabase.from("listings").select("*").eq("id", order.listing_id).maybeSingle(),
     lookup.from("public_profiles").select("*").eq("id", order.buyer_id).maybeSingle(),
@@ -252,6 +257,7 @@ export async function getOrderDetail(orderId: string): Promise<OrderDetailBundle
       : Promise.resolve({ data: null }),
     supabase.from("disputes").select("*").eq("order_id", order.id).maybeSingle(),
     supabase.from("payout_ledger").select("*").eq("order_id", order.id).maybeSingle(),
+    supabase.from("reviews").select("*").eq("order_id", order.id).maybeSingle(),
   ]);
 
   if (!listing) return null;
@@ -276,6 +282,7 @@ export async function getOrderDetail(orderId: string): Promise<OrderDetailBundle
     sellerContact: contactRows?.[0] ?? null,
     dispute: dispute ? { ...dispute, signedEvidenceUrls } : null,
     payoutEntry: payoutEntry ?? null,
+    review: review ?? null,
   };
 }
 
@@ -480,3 +487,184 @@ export async function getAdminDashboardData() {
 
   return { verifications, disputes, payouts, reports };
 }
+
+// ---------------------------------------------------------------------
+// Chat In-App & Make Offer (Tawar Harga)
+// ---------------------------------------------------------------------
+export interface ConversationSummaryItem {
+  conversation: Conversation;
+  listing: Listing;
+  counterpart: PublicProfile | null;
+  perspective: "buyer" | "seller";
+}
+
+export async function getBuyerOfferForListing(
+  listingId: string,
+  buyerId: string | undefined,
+): Promise<{ conversationId: string; acceptedOfferIdr: number | null } | null> {
+  if (!isSupabaseConfigured || !buyerId) return null;
+  const supabase = await getSupabaseServerClient();
+  const { data } = await supabase
+    .from("conversations")
+    .select("id, accepted_offer_idr")
+    .eq("listing_id", listingId)
+    .eq("buyer_id", buyerId)
+    .maybeSingle();
+
+  if (!data) return null;
+  return { conversationId: data.id, acceptedOfferIdr: data.accepted_offer_idr };
+}
+
+export async function getMyConversations(userId: string): Promise<ConversationSummaryItem[]> {
+  if (!isSupabaseConfigured) return [];
+  const supabase = await getSupabaseServerClient();
+  const lookup = getProfileLookupClient() ?? supabase;
+
+  const { data: convs } = await supabase
+    .from("conversations")
+    .select("*")
+    .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
+    .order("last_message_at", { ascending: false });
+
+  if (!convs?.length) return [];
+
+  const listingIds = Array.from(new Set(convs.map((c) => c.listing_id)));
+  const profileIds = Array.from(
+    new Set(convs.flatMap((c) => [c.buyer_id, c.seller_id]).filter((id) => id !== userId)),
+  );
+
+  const [{ data: listings }, { data: profiles }] = await Promise.all([
+    supabase.from("listings").select("*").in("id", listingIds),
+    profileIds.length
+      ? lookup.from("public_profiles").select("*").in("id", profileIds)
+      : Promise.resolve({ data: [] as PublicProfile[] }),
+  ]);
+
+  const listingMap = new Map((listings ?? []).map((l) => [l.id, l]));
+  const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
+
+  const items: ConversationSummaryItem[] = [];
+  for (const conv of convs) {
+    const listing = listingMap.get(conv.listing_id);
+    if (!listing) continue;
+    const isBuyer = conv.buyer_id === userId;
+    items.push({
+      conversation: conv,
+      listing,
+      counterpart: profileMap.get(isBuyer ? conv.seller_id : conv.buyer_id) ?? null,
+      perspective: isBuyer ? "buyer" : "seller",
+    });
+  }
+  return items;
+}
+
+export interface ConversationDetailBundle {
+  conversation: Conversation;
+  listing: Listing;
+  buyer: PublicProfile | null;
+  seller: PublicProfile | null;
+  messages: Message[];
+}
+
+export async function getConversationDetail(
+  conversationId: string,
+): Promise<ConversationDetailBundle | null> {
+  if (!isSupabaseConfigured) return null;
+  const supabase = await getSupabaseServerClient();
+  const lookup = getProfileLookupClient() ?? supabase;
+
+  const { data: conversation } = await supabase
+    .from("conversations")
+    .select("*")
+    .eq("id", conversationId)
+    .maybeSingle();
+
+  if (!conversation) return null;
+
+  const [{ data: listing }, { data: buyer }, { data: seller }, { data: messages }] =
+    await Promise.all([
+      supabase.from("listings").select("*").eq("id", conversation.listing_id).maybeSingle(),
+      lookup.from("public_profiles").select("*").eq("id", conversation.buyer_id).maybeSingle(),
+      lookup.from("public_profiles").select("*").eq("id", conversation.seller_id).maybeSingle(),
+      supabase
+        .from("messages")
+        .select("*")
+        .eq("conversation_id", conversation.id)
+        .order("created_at", { ascending: true }),
+    ]);
+
+  if (!listing) return null;
+
+  return {
+    conversation,
+    listing,
+    buyer: buyer ?? null,
+    seller: seller ?? null,
+    messages: messages ?? [],
+  };
+}
+
+// ---------------------------------------------------------------------
+// Rating & Review Bintang 1-5
+// ---------------------------------------------------------------------
+export interface EnrichedReview extends Review {
+  reviewerFirstName: string;
+  listingTitle: string;
+}
+
+export interface SellerReviewSummary {
+  averageRating: number;
+  totalReviews: number;
+  reviews: EnrichedReview[];
+}
+
+export async function getSellerReviewSummary(sellerId: string): Promise<SellerReviewSummary> {
+  if (!isSupabaseConfigured) {
+    return { averageRating: 0, totalReviews: 0, reviews: [] };
+  }
+
+  const supabase = await getSupabaseServerClient();
+  const lookup = getProfileLookupClient() ?? supabase;
+
+  const { data: rawReviews } = await supabase
+    .from("reviews")
+    .select("*")
+    .eq("seller_id", sellerId)
+    .order("created_at", { ascending: false })
+    .limit(30);
+
+  if (!rawReviews?.length) {
+    return { averageRating: 0, totalReviews: 0, reviews: [] };
+  }
+
+  const reviewerIds = Array.from(new Set(rawReviews.map((r) => r.reviewer_id)));
+  const listingIds = Array.from(new Set(rawReviews.map((r) => r.listing_id)));
+
+  const [{ data: profiles }, { data: listings }] = await Promise.all([
+    reviewerIds.length
+      ? lookup.from("public_profiles").select("*").in("id", reviewerIds)
+      : Promise.resolve({ data: [] as PublicProfile[] }),
+    listingIds.length
+      ? supabase.from("listings").select("id, title").in("id", listingIds)
+      : Promise.resolve({ data: [] as { id: string; title: string }[] }),
+  ]);
+
+  const profileMap = new Map((profiles ?? []).map((p) => [p.id, p.first_name]));
+  const listingMap = new Map((listings ?? []).map((l) => [l.id, l.title]));
+
+  const sum = rawReviews.reduce((acc, r) => acc + r.rating, 0);
+  const averageRating = Math.round((sum / rawReviews.length) * 10) / 10;
+
+  const reviews: EnrichedReview[] = rawReviews.map((r) => ({
+    ...r,
+    reviewerFirstName: profileMap.get(r.reviewer_id) ?? "Civitas",
+    listingTitle: listingMap.get(r.listing_id) ?? "Barang Kampus",
+  }));
+
+  return {
+    averageRating,
+    totalReviews: rawReviews.length,
+    reviews,
+  };
+}
+

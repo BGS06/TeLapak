@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Copy,
@@ -11,7 +12,9 @@ import {
   Eye,
   EyeOff,
   Flag,
+  HandCoins,
   Loader2,
+  MessageSquare,
   Share2,
   ShieldCheck,
   ShoppingBag,
@@ -20,8 +23,10 @@ import {
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/input";
+import { Input, Textarea } from "@/components/ui/input";
+import { BUSINESS } from "@/config/business";
 import { formatIDR } from "@/lib/utils";
+import { sendOfferAction, startOrOpenConversationAction } from "@/server/actions/chat";
 import { toggleListingVisibilityAction } from "@/server/actions/listings";
 import { checkoutListingAction } from "@/server/actions/orders";
 import { createReportAction } from "@/server/actions/reports";
@@ -130,6 +135,8 @@ interface ItemActionsProps {
   isBuyerVerified: boolean;
   totalWithGatewayIdr: number;
   gatewayFeeIdr: number;
+  acceptedOfferIdr?: number | null;
+  existingConversationId?: string | null;
 }
 
 export function ItemActions({
@@ -142,12 +149,27 @@ export function ItemActions({
   isBuyerVerified,
   totalWithGatewayIdr,
   gatewayFeeIdr,
+  acceptedOfferIdr,
+  existingConversationId,
 }: ItemActionsProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reportSubmitting, setReportSubmitting] = useState(false);
+
+  const [offerOpen, setOfferOpen] = useState(false);
+  const [offerAmount, setOfferAmount] = useState<string>(
+    String(Math.max(BUSINESS.minListingPriceIdr, Math.round((listing.price_idr * 0.9) / 1000) * 1000)),
+  );
+  const [offerNote, setOfferNote] = useState("");
+
+  const effectivePrice = acceptedOfferIdr ?? listing.price_idr;
+  const presets = [
+    { label: "-10%", value: Math.round((listing.price_idr * 0.9) / 1000) * 1000 },
+    { label: "-15%", value: Math.round((listing.price_idr * 0.85) / 1000) * 1000 },
+    { label: "-20%", value: Math.round((listing.price_idr * 0.8) / 1000) * 1000 },
+  ].filter((p) => p.value >= BUSINESS.minListingPriceIdr && p.value < listing.price_idr);
 
   const handleBuy = () => {
     if (!isLoggedIn) {
@@ -172,6 +194,52 @@ export function ItemActions({
       } else {
         window.location.href = res.data.paymentUrl;
       }
+    });
+  };
+
+  const handleOpenChat = () => {
+    if (!isLoggedIn) {
+      router.push(`/login?next=${encodeURIComponent(`/items/${listing.id}`)}`);
+      return;
+    }
+    if (existingConversationId) {
+      router.push(`/messages/${existingConversationId}`);
+      return;
+    }
+    startTransition(async () => {
+      const res = await startOrOpenConversationAction(listing.id);
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      router.push(`/messages/${res.data.conversationId}`);
+    });
+  };
+
+  const handleOpenOfferModal = () => {
+    if (!isLoggedIn) {
+      router.push(`/login?next=${encodeURIComponent(`/items/${listing.id}`)}`);
+      return;
+    }
+    setOfferOpen(true);
+  };
+
+  const handleSubmitOffer = (e: React.FormEvent) => {
+    e.preventDefault();
+    startTransition(async () => {
+      const res = await sendOfferAction({
+        listingId: listing.id,
+        conversationId: existingConversationId ?? undefined,
+        offerAmountIdr: Number(offerAmount),
+        note: offerNote,
+      });
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(res.message);
+      setOfferOpen(false);
+      router.push(`/messages/${res.data.conversationId}`);
     });
   };
 
@@ -235,6 +303,24 @@ export function ItemActions({
 
   return (
     <div className="space-y-3">
+      {/* Banner Tawaran Harga yang Sudah Disetujui Penjual */}
+      {acceptedOfferIdr && !isOwnListing && (
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-[#bfe3ce] bg-[#e8f5ee] px-3.5 py-2.5 text-xs text-[#146c43]">
+          <span className="inline-flex items-center gap-1.5 font-bold">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            Harga kesepakatan dengan penjual: {formatIDR(acceptedOfferIdr)}
+          </span>
+          {existingConversationId && (
+            <Link
+              href={`/messages/${existingConversationId}`}
+              className="font-semibold underline hover:no-underline"
+            >
+              Lihat Chat
+            </Link>
+          )}
+        </div>
+      )}
+
       {/* Rincian Biaya & Alur Perlindungan Transaksi */}
       <div className="rounded-lg border border-[#edf2f2] bg-[#f2f4f4]/70 p-3.5">
         <div className="flex items-start gap-2.5">
@@ -258,7 +344,7 @@ export function ItemActions({
         </div>
       </div>
 
-      {/* Tombol Utama: Beli Sekarang / Kelola Barang Milik Sendiri */}
+      {/* Tombol Utama: Beli Sekarang + Tawar Harga + Chat Penjual */}
       {isOwnListing ? (
         <div className="space-y-3 rounded-lg border border-[#edf2f2] bg-[#f2f4f4]/50 p-3.5">
           <div className="flex items-center justify-between">
@@ -306,31 +392,72 @@ export function ItemActions({
           )}
         </div>
       ) : listing.status === "active" ? (
-        <Button
-          type="button"
-          variant="primary"
-          size="lg"
-          className="w-full rounded-lg"
-          disabled={isPending}
-          onClick={handleBuy}
-        >
-          {isPending ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Memproses Pesanan...
-            </>
-          ) : (
-            <>
-              <ShoppingBag className="h-4 w-4" />
-              Beli Sekarang • {formatIDR(listing.price_idr)}
-            </>
-          )}
-        </Button>
+        <div className="space-y-2">
+          <Button
+            type="button"
+            variant="primary"
+            size="lg"
+            className="w-full rounded-lg"
+            disabled={isPending}
+            onClick={handleBuy}
+          >
+            {isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Memproses...
+              </>
+            ) : (
+              <>
+                <ShoppingBag className="h-4 w-4" />
+                Beli Sekarang • {formatIDR(effectivePrice)}
+              </>
+            )}
+          </Button>
+
+          {/* Tombol Tawar Harga (Make Offer) & Chat Penjual ala Vinted */}
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="md"
+              className="rounded-lg"
+              disabled={isPending}
+              onClick={handleOpenOfferModal}
+            >
+              <HandCoins className="h-4 w-4" />
+              Tawar Harga
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="md"
+              className="rounded-lg"
+              disabled={isPending}
+              onClick={handleOpenChat}
+            >
+              <MessageSquare className="h-4 w-4" />
+              Chat Penjual
+            </Button>
+          </div>
+        </div>
       ) : (
-        <div className="rounded-lg border border-[#f8deb0] bg-[#fef6e6] px-4 py-3 text-center text-xs font-semibold text-[#92400e]">
-          {listing.status === "reserved"
-            ? "Maaf, barang ini sedang dalam proses pembayaran oleh pembeli lain. Silakan cek kembali beberapa saat lagi."
-            : "Barang ini sudah terjual."}
+        <div className="space-y-2">
+          <div className="rounded-lg border border-[#f8deb0] bg-[#fef6e6] px-4 py-3 text-center text-xs font-semibold text-[#92400e]">
+            {listing.status === "reserved"
+              ? "Maaf, barang ini sedang dalam proses pembayaran oleh pembeli lain. Silakan cek kembali beberapa saat lagi."
+              : "Barang ini sudah terjual."}
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            size="md"
+            className="w-full rounded-lg"
+            disabled={isPending}
+            onClick={handleOpenChat}
+          >
+            <MessageSquare className="h-4 w-4" />
+            Chat Penjual
+          </Button>
         </div>
       )}
 
@@ -369,6 +496,114 @@ export function ItemActions({
             <Flag className="h-3.5 w-3.5" />
             Laporkan Barang (indikasi palsu / terlarang)
           </button>
+        </div>
+      )}
+
+      {/* Modal / Bottom Sheet Make Offer (Tawar Harga) */}
+      {offerOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 backdrop-blur-2xs sm:items-center sm:p-4">
+          <div className="animate-sheet-up w-full max-w-md rounded-t-2xl border border-[#edf2f2] bg-white p-5 pb-safe shadow-xl sm:rounded-xl sm:pb-5">
+            <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-[#d9dfdf] sm:hidden" />
+            <div className="flex items-center justify-between border-b border-[#edf2f2] pb-3">
+              <div>
+                <h3 className="text-base font-bold text-[#171717]">Tawar Harga (Make Offer)</h3>
+                <p className="text-xs text-[#666666]">
+                  Harga asli: <strong className="text-[#171717]">{formatIDR(listing.price_idr)}</strong>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOfferOpen(false)}
+                className="cursor-pointer rounded-md p-1.5 text-[#8c8c8c] transition hover:bg-[#f2f4f4] hover:text-[#171717]"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitOffer} className="mt-4 space-y-4">
+              {presets.length > 0 && (
+                <div>
+                  <span className="mb-1.5 block text-xs font-bold text-[#171717]">
+                    Pilihan Diskon Cepat
+                  </span>
+                  <div className="grid grid-cols-3 gap-2">
+                    {presets.map((p) => {
+                      const selected = Number(offerAmount) === p.value;
+                      return (
+                        <button
+                          key={p.label}
+                          type="button"
+                          onClick={() => setOfferAmount(String(p.value))}
+                          className={`cursor-pointer rounded-lg border p-2 text-center transition ${
+                            selected
+                              ? "border-[#b3261e] bg-[#fdf2f2] text-[#b3261e]"
+                              : "border-[#d9dfdf] bg-white text-[#171717] hover:bg-[#f2f4f4]"
+                          }`}
+                        >
+                          <span className="block text-xs font-extrabold">{formatIDR(p.value)}</span>
+                          <span className="text-[10px] font-medium text-[#8c8c8c]">
+                            Hemat {p.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="mb-1 block text-xs font-bold text-[#171717]">
+                  Nominal Tawaranmu (IDR)
+                </label>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  required
+                  min={Math.max(BUSINESS.minListingPriceIdr, Math.floor(listing.price_idr * 0.4))}
+                  max={listing.price_idr - 500}
+                  step={500}
+                  value={offerAmount}
+                  onChange={(e) => setOfferAmount(e.target.value)}
+                  className="tabular-nums font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-bold text-[#171717]">
+                  Pesan untuk Penjual (Opsional)
+                </label>
+                <Input
+                  maxLength={200}
+                  value={offerNote}
+                  onChange={(e) => setOfferNote(e.target.value)}
+                  placeholder="Contoh: Kalau cocok, saya bisa COD siang ini di Lobi kak!"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="rounded-lg"
+                  onClick={() => setOfferOpen(false)}
+                >
+                  Batal
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  className="rounded-lg"
+                  disabled={isPending}
+                >
+                  {isPending
+                    ? "Mengirim..."
+                    : `Ajukan Tawaran ${formatIDR(Number(offerAmount) || 0)}`}
+                </Button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

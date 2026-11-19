@@ -3,7 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import type { Database } from "@/types/database";
 
 /** Halaman yang wajib login. */
-const PROTECTED_PREFIXES = ["/sell", "/orders", "/profile", "/admin", "/pay"];
+const PROTECTED_PREFIXES = ["/sell", "/orders", "/profile", "/admin", "/pay", "/messages"];
 /** Halaman yang tidak relevan bila sudah login. */
 const GUEST_ONLY = ["/login", "/register"];
 
