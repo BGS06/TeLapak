@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { PackageOpen, Plus, ShieldCheck, X } from "lucide-react";
+import { HeroCarousel } from "@/components/hero-carousel";
 import { ListingCard } from "@/components/listing-card";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
-import { CATEGORIES, CONDITIONS } from "@/config/constants";
+import { CATEGORIES, CONDITIONS, categoryLabel } from "@/config/constants";
 import { getActiveCampusForSession, getCatalogListings } from "@/server/queries";
 import type { Enums } from "@/types/database";
 
@@ -48,57 +49,33 @@ export default async function HomePage({
 
   const hasFilter = Boolean(q || activeCategory || activeCondition);
 
+  const catalogHeading = q
+    ? `Hasil pencarian “${q}”`
+    : activeCategory
+      ? categoryLabel(activeCategory)
+      : `Baru Diunggah di ${campus.name}`;
+
   return (
     <>
-      <SiteHeader initialQuery={q} />
+      <SiteHeader initialQuery={q} activeCategory={activeCategory} />
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-5">
-        {/* Baris Filter Kategori & Kondisi (PRD §7.1 — bersih ala katalog tanpa banner promo ramai) */}
+      {/* Hero Carousel Multi-Gambar dengan Bullet & Tombol Panah */}
+      {!hasFilter && <HeroCarousel campusName={campus.name} />}
+
+      <main className="mx-auto w-full max-w-[1280px] flex-1 px-4 pt-5 pb-12">
+        {/* Toolbar Filter Kondisi */}
         <section
-          aria-label="Filter katalog"
-          className="flex flex-col gap-3 border-b border-[#e6e0d6] pb-4 sm:flex-row sm:items-center sm:justify-between"
+          aria-label="Filter kondisi barang"
+          className="flex flex-col gap-3 border-b border-[#edf2f2] pb-4 sm:flex-row sm:items-center sm:justify-between"
         >
-          {/* Pilihan Kategori */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-            <Link
-              href={buildFilterHref(params, { category: undefined })}
-              className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
-                !activeCategory
-                  ? "bg-[#181512] text-white"
-                  : "border border-[#e6e0d6] bg-white text-[#57524c] hover:bg-[#f3efe9]"
-              }`}
-            >
-              Semua
-            </Link>
-            {CATEGORIES.map((cat) => {
-              const selected = activeCategory === cat.value;
-              return (
-                <Link
-                  key={cat.value}
-                  href={buildFilterHref(params, {
-                    category: selected ? undefined : cat.value,
-                  })}
-                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
-                    selected
-                      ? "bg-[#b3261e] text-white"
-                      : "border border-[#e6e0d6] bg-white text-[#57524c] hover:bg-[#f3efe9]"
-                  }`}
-                >
-                  {cat.label}
-                </Link>
-              );
-            })}
-          </div>
-
-          {/* Filter Kondisi */}
-          <div className="flex items-center gap-1.5 overflow-x-auto">
-            <span className="shrink-0 text-xs font-medium text-[#857e76]">Kondisi:</span>
+          <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto">
+            <span className="mr-1 shrink-0 text-xs font-medium text-[#8c8c8c]">Kondisi:</span>
             <Link
               href={buildFilterHref(params, { condition: undefined })}
-              className={`shrink-0 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+              className={`shrink-0 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${
                 !activeCondition
-                  ? "bg-[#ebe4db] font-semibold text-[#181512]"
-                  : "text-[#57524c] hover:bg-[#f3efe9]"
+                  ? "border-[#b3261e] bg-[#fdf2f2] font-semibold text-[#b3261e]"
+                  : "border-[#d9dfdf] bg-white text-[#666666] hover:bg-[#f2f4f4]"
               }`}
             >
               Semua
@@ -111,10 +88,10 @@ export default async function HomePage({
                   href={buildFilterHref(params, {
                     condition: selected ? undefined : cond.value,
                   })}
-                  className={`shrink-0 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+                  className={`shrink-0 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${
                     selected
-                      ? "bg-[#146c43] font-semibold text-white"
-                      : "text-[#57524c] hover:bg-[#f3efe9]"
+                      ? "border-[#b3261e] bg-[#b3261e] font-semibold text-white"
+                      : "border-[#d9dfdf] bg-white text-[#666666] hover:bg-[#f2f4f4]"
                   }`}
                 >
                   {cond.label}
@@ -122,50 +99,56 @@ export default async function HomePage({
               );
             })}
           </div>
+
+          <span className="inline-flex items-center gap-1.5 self-start rounded-md bg-[#f2f4f4] px-3 py-1.5 text-xs font-medium text-[#171717] sm:self-auto">
+            <ShieldCheck className="h-4 w-4 shrink-0 text-[#b3261e]" />
+            Perlindungan Transaksi Aktif
+          </span>
         </section>
 
-        {/* Sub-bar status katalog & perlindungan transaksi */}
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-[#57524c]">
-          <div className="flex flex-wrap items-center gap-2">
-            <span>
-              Menampilkan <strong className="text-[#181512]">{listings.length}</strong> barang siap
-              COD di <strong className="text-[#181512]">{campus.name}</strong>
-            </span>
-            {hasFilter && (
-              <Link
-                href="/"
-                className="inline-flex items-center gap-1 rounded-full bg-[#f3efe9] px-2.5 py-0.5 font-semibold text-[#b3261e] hover:bg-[#ebe4db]"
-              >
-                <X className="h-3 w-3" />
-                Reset filter
-              </Link>
-            )}
+        {/* Judul Katalog & Jumlah Barang */}
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-base font-extrabold tracking-tight text-[#171717] sm:text-lg">
+              {catalogHeading}
+            </h2>
+            <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-[#666666]">
+              <span>
+                Menampilkan <strong className="font-semibold text-[#171717]">{listings.length}</strong>{" "}
+                barang siap COD
+              </span>
+              {hasFilter && (
+                <Link
+                  href="/"
+                  className="inline-flex items-center gap-1 rounded-md bg-[#fdf2f2] px-2 py-0.5 font-semibold text-[#b3261e] hover:bg-[#fbe6e5]"
+                >
+                  <X className="h-3 w-3" />
+                  Reset filter
+                </Link>
+              )}
+            </div>
           </div>
-          <span className="inline-flex items-center gap-1.5 font-medium text-[#146c43]">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            Perlindungan Transaksi: Dana ditahan sementara hingga serah terima di kampus
-          </span>
         </div>
 
-        {/* Grid Kartu Barang: 2 kolom di mobile, 4 kolom di desktop (PRD §7.1) */}
+        {/* Grid Kartu Barang 5 Kolom ala Vinted */}
         {listings.length > 0 ? (
           <section
             aria-label="Daftar barang"
-            className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4"
+            className="mt-4 grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
           >
             {listings.map((item) => (
               <ListingCard key={item.id} listing={item} />
             ))}
           </section>
         ) : (
-          <section className="mt-10 flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#dcd5c9] bg-white px-6 py-14 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f3efe9] text-[#857e76]">
+          <section className="mt-10 flex flex-col items-center justify-center rounded-xl border border-dashed border-[#d9dfdf] bg-[#f2f4f4]/50 px-6 py-14 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-[#8c8c8c] shadow-2xs">
               <PackageOpen className="h-6 w-6" />
             </div>
-            <h2 className="mt-4 text-base font-bold text-[#181512]">
+            <h3 className="mt-4 text-base font-bold text-[#171717]">
               Belum ada barang yang cocok
-            </h2>
-            <p className="mt-1 max-w-sm text-xs leading-relaxed text-[#57524c]">
+            </h3>
+            <p className="mt-1 max-w-sm text-xs leading-relaxed text-[#666666]">
               {hasFilter
                 ? "Coba kata kunci lain atau hapus filter kategori/kondisi untuk melihat semua barang di kampusmu."
                 : "Jadilah yang pertama memasang barang bekas layak pakai untuk civitas kampusmu."}
@@ -187,7 +170,9 @@ export default async function HomePage({
         )}
       </main>
 
-      <SiteFooter />
+      <div id="cara-kerja">
+        <SiteFooter />
+      </div>
     </>
   );
 }

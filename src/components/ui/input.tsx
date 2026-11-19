@@ -6,7 +6,7 @@ export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttribute
     <input
       ref={ref}
       className={cn(
-        "flex h-11 w-full rounded-xl border border-[#dcd5c9] bg-white px-3.5 py-2 text-sm text-[#181512] placeholder:text-[#857e76] focus:border-[#b3261e] focus:outline-none focus:ring-2 focus:ring-[#b3261e]/15 disabled:cursor-not-allowed disabled:bg-[#f3efe9] disabled:opacity-60",
+        "flex h-10 w-full rounded-md border border-[#d9dfdf] bg-white px-3.5 py-2 text-sm text-[#171717] placeholder:text-[#8c8c8c] transition-colors focus:border-[#b3261e] focus:outline-none focus:ring-2 focus:ring-[#b3261e]/15 disabled:cursor-not-allowed disabled:bg-[#f2f4f4] disabled:opacity-60",
         className,
       )}
       {...props}
@@ -22,7 +22,7 @@ export const Textarea = React.forwardRef<
   <textarea
     ref={ref}
     className={cn(
-      "flex min-h-[110px] w-full rounded-xl border border-[#dcd5c9] bg-white px-3.5 py-2.5 text-sm text-[#181512] placeholder:text-[#857e76] focus:border-[#b3261e] focus:outline-none focus:ring-2 focus:ring-[#b3261e]/15 disabled:cursor-not-allowed disabled:bg-[#f3efe9] disabled:opacity-60",
+      "flex min-h-[110px] w-full rounded-md border border-[#d9dfdf] bg-white px-3.5 py-2.5 text-sm text-[#171717] placeholder:text-[#8c8c8c] transition-colors focus:border-[#b3261e] focus:outline-none focus:ring-2 focus:ring-[#b3261e]/15 disabled:cursor-not-allowed disabled:bg-[#f2f4f4] disabled:opacity-60",
       className,
     )}
     {...props}
@@ -37,7 +37,7 @@ export const Select = React.forwardRef<
   <select
     ref={ref}
     className={cn(
-      "flex h-11 w-full rounded-xl border border-[#dcd5c9] bg-white px-3.5 py-2 text-sm text-[#181512] focus:border-[#b3261e] focus:outline-none focus:ring-2 focus:ring-[#b3261e]/15 disabled:cursor-not-allowed disabled:bg-[#f3efe9] disabled:opacity-60",
+      "flex h-10 w-full rounded-md border border-[#d9dfdf] bg-white px-3.5 py-2 text-sm text-[#171717] transition-colors focus:border-[#b3261e] focus:outline-none focus:ring-2 focus:ring-[#b3261e]/15 disabled:cursor-not-allowed disabled:bg-[#f2f4f4] disabled:opacity-60",
       className,
     )}
     {...props}

@@ -1,36 +1,82 @@
 @import "tailwindcss";
 @import "@fontsource-variable/plus-jakarta-sans";
-
 :root {
-  --bg-canvas: #faf8f5;
-  --bg-surface: #ffffff;
-  --bg-subtle: #f3efe9;
-  --fg-primary: #181512;
-  --fg-secondary: #57524c;
-  --fg-muted: #857e76;
-  --border-warm: #e6e0d6;
-  --brand-crimson: #b3261e;
-  --brand-crimson-dark: #8f1c15;
-  --trust-green: #146c43;
+    /* === Palet Utama Vinted === */
+    --brand-primary: #007782;
+    --brand-primary-dark: #005f68;
+    --brand-primary-soft: #e6f3f4;
+    /* === Remapping Variabel Lama ke Nuansa Vinted (Putih & Abu-abu Dingin) === */
+    --bg-canvas: #ffffff;
+    /* Sebelumnya #faf8f5 -> Putih bersih Vinted */
+    --bg-surface: #ffffff;
+    /* Permukaan kartu, dropdown, & modal */
+    --bg-subtle: #f2f4f4;
+    /* Sebelumnya #f3efe9 -> Abu-abu lembut search bar & placeholder foto */
+    --fg-primary: #171717;
+    /* Sebelumnya #181512 -> Hitam netral tajam */
+    --fg-secondary: #666666;
+    /* Sebelumnya #57524c -> Abu-abu teks sekunder */
+    --fg-muted: #8c8c8c;
+    /* Sebelumnya #857e76 -> Abu-abu metadata, kondisi, & lokasi COD */
+    --border-warm: #edf2f2;
+    /* Sebelumnya #e6e0d6 -> Hairline border tipis 1px khas Vinted */
+    --border-strong: #d9dfdf;
+    /* Border untuk chip filter & tombol outlined */
+    /* === Aksen Brand & Perlindungan Transaksi === */
+    /* Catatan: Kembalikan --brand-crimson ke #b3261e & #8f1c15 jika ingin tetap memakai merah Tel-U */
+    --brand-crimson: #007782;
+    --brand-crimson-dark: #005f68;
+    --trust-green: #007782;
+    /* Ikon perisai Perlindungan Transaksi */
+}
+
+
+/* Registrasi token ke Tailwind CSS 4 agar bisa dipakai langsung sebagai utility class */
+
+@theme inline {
+    --color-canvas: var(--bg-canvas);
+    --color-surface: var(--bg-surface);
+    --color-subtle: var(--bg-subtle);
+    --color-fg-primary: var(--fg-primary);
+    --color-fg-secondary: var(--fg-secondary);
+    --color-fg-muted: var(--fg-muted);
+    --color-hairline: var(--border-warm);
+    --color-border-strong: var(--border-strong);
+    --color-brand: var(--brand-primary);
+    --color-brand-dark: var(--brand-primary-dark);
+    --color-brand-soft: var(--brand-primary-soft);
+    --color-trust: var(--trust-green);
 }
 
 @layer base {
-  html {
-    font-family: "Plus Jakarta Sans Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-      sans-serif;
-    background-color: var(--bg-canvas);
-    color: var(--fg-primary);
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  body {
-    min-height: 100dvh;
-    background-color: var(--bg-canvas);
-    color: var(--fg-primary);
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-  }
+    html {
+        font-family: "Plus Jakarta Sans Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background-color: var(--bg-canvas);
+        color: var(--fg-primary);
+        -webkit-tap-highlight-color: transparent;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+    body {
+        min-height: 100dvh;
+        background-color: var(--bg-canvas);
+        color: var(--fg-primary);
+        font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    }
 }
 
 .tabular-nums {
-  font-variant-numeric: tabular-nums;
+    font-variant-numeric: tabular-nums;
+}
+
+
+/* Menyembunyikan scrollbar pada baris tab kategori horizontal di mobile */
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
