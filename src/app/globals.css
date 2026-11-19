@@ -95,17 +95,38 @@ html.dark {
 }
 
 /* =====================================================================
-   Transisi Halus Sinkron saat Pengguna Menekan Tombol Mode Gelap/Terang
-   Seluruh permukaan, kartu, teks, border, dan ikon mengalir serentak
-   selama 320ms dengan kurva cubic-bezier(0.22, 1, 0.36, 1).
+   Transisi 1 Halaman Utuh (Whole-Page View Transition)
+   Mencegah efek pergantian terpotong per-slice / per-komponen:
+   1. Saat snapshot diambil (`html.theme-switching`), semua transition CSS
+      individual dimatikan (`transition: none !important`) agar seluruh
+      komponen berubah pada 1 frame yang sama.
+   2. GPU melakukan cross-fade `::view-transition-old(root)` dan
+      `::view-transition-new(root)` sebagai 1 gambar layar utuh selama 260ms.
    ===================================================================== */
+html.theme-switching,
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition: none !important;
+  animation: none !important;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 260ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  mix-blend-mode: normal;
+}
+
+/* Fallback sinkron untuk browser tanpa View Transitions API */
 html.theme-transitioning,
 html.theme-transitioning *,
 html.theme-transitioning *::before,
 html.theme-transitioning *::after {
-  transition-property: background-color, border-color, color, fill, stroke, box-shadow, filter !important;
-  transition-duration: 320ms !important;
+  transition-property: background-color, border-color, color !important;
+  transition-duration: 240ms !important;
   transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1) !important;
+  transition-delay: 0ms !important;
 }
 
 /* =====================================================================
@@ -117,7 +138,7 @@ html.dark .bg-white {
 html.dark .bg-white\/95,
 html.dark .bg-white\/90,
 html.dark .bg-white\/80 {
-  background-color: rgba(24, 27, 34, 0.92) !important;
+  background-color: rgba(24, 27, 34, 0.94) !important;
 }
 html.dark .bg-\[\#faf8f5\],
 html.dark .bg-\[\#faf8f5\]\/95 {
@@ -235,11 +256,6 @@ html.dark .hover\:bg-\[\#fdf2f2\]:hover {
 }
 html.dark .focus-within\:bg-white:focus-within {
   background-color: #181b22 !important;
-}
-
-/* Reduksi silau lembut pada gambar ilustrasi produk berlatar terang saat Mode Gelap */
-html.dark img {
-  filter: brightness(0.94) contrast(1.02);
 }
 
 .tabular-nums {
