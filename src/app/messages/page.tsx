@@ -32,6 +32,7 @@ export default async function MessagesInboxPage() {
 
   const profile = await requireProfile("/messages");
   const conversations = await getMyConversations(profile.id);
+  const totalUnread = conversations.reduce((sum, item) => sum + item.unreadCount, 0);
 
   return (
     <>
@@ -39,9 +40,16 @@ export default async function MessagesInboxPage() {
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-3.5 pt-5 pb-12 sm:px-4 sm:pt-6">
         <div className="border-b border-[#edf2f2] pb-4">
-          <h1 className="text-xl font-extrabold tracking-tight text-[#171717] sm:text-2xl">
-            Pesan & Tawar Harga
-          </h1>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="text-xl font-extrabold tracking-tight text-[#171717] sm:text-2xl">
+              Pesan & Tawar Harga
+            </h1>
+            {totalUnread > 0 && (
+              <span className="inline-flex h-6 min-w-[24px] items-center justify-center rounded-full bg-[#b3261e] px-2 text-xs font-bold text-white tabular-nums">
+                {totalUnread} belum dibaca
+              </span>
+            )}
+          </div>
           <p className="mt-1 text-xs text-[#666666]">
             Diskusikan detail barang, ajukan tawaran harga (Make Offer), dan sepakati titik temu COD
             dengan civitas kampus.
@@ -50,14 +58,17 @@ export default async function MessagesInboxPage() {
 
         {conversations.length > 0 ? (
           <div className="mt-4 divide-y divide-[#edf2f2] overflow-hidden rounded-lg border border-[#edf2f2] bg-white">
-            {conversations.map(({ conversation, listing, counterpart, perspective }) => {
+            {conversations.map(({ conversation, listing, counterpart, perspective, unreadCount }) => {
               const cover = listing.image_urls[0] ?? "";
               const listingStatus = LISTING_STATUS[listing.status];
+              const hasUnread = unreadCount > 0;
               return (
                 <Link
                   key={conversation.id}
                   href={`/messages/${conversation.id}`}
-                  className="group flex items-center justify-between gap-3.5 p-3.5 transition hover:bg-[#f2f4f4]/60 active:scale-[0.995] sm:p-4"
+                  className={`group flex items-center justify-between gap-3.5 p-3.5 transition hover:bg-[#f2f4f4]/60 active:scale-[0.995] sm:p-4 ${
+                    hasUnread ? "bg-[#fdf2f2]/60" : ""
+                  }`}
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-3.5">
                     {/* Foto Barang */}
@@ -96,16 +107,30 @@ export default async function MessagesInboxPage() {
                         {listing.title}
                       </h3>
 
-                      <p className="mt-0.5 truncate text-xs text-[#666666]">
+                      <p
+                        className={`mt-0.5 truncate text-xs ${
+                          hasUnread ? "font-semibold text-[#171717]" : "text-[#666666]"
+                        }`}
+                      >
                         {conversation.last_message_text || "Mulai percakapan..."}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex shrink-0 flex-col items-end gap-1.5">
-                    <span className="text-[11px] text-[#8c8c8c]">
-                      {formatRelative(conversation.last_message_at)}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] text-[#8c8c8c]">
+                        {formatRelative(conversation.last_message_at)}
+                      </span>
+                      {hasUnread && (
+                        <span
+                          title={`${unreadCount} pesan baru belum dibaca`}
+                          className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#b3261e] px-1.5 text-[10px] font-bold text-white tabular-nums"
+                        >
+                          {unreadCount > 99 ? "99+" : unreadCount}
+                        </span>
+                      )}
+                    </div>
                     <span className="tabular-nums text-xs font-extrabold text-[#171717]">
                       {formatIDR(conversation.accepted_offer_idr ?? listing.price_idr)}
                     </span>

@@ -257,6 +257,9 @@ html.dark .hover\:bg-\[\#fdf2f2\]:hover {
 html.dark .focus-within\:bg-white:focus-within {
   background-color: #181b22 !important;
 }
+html.dark .ring-white {
+  --tw-ring-color: #181b22 !important;
+}
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;

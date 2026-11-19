@@ -496,6 +496,64 @@ export interface ConversationSummaryItem {
   listing: Listing;
   counterpart: PublicProfile | null;
   perspective: "buyer" | "seller";
+  unreadCount: number;
+}
+
+export interface UnreadChatSummary {
+  totalUnread: number;
+  byConversation: Record<string, number>;
+}
+
+export async function getUnreadChatSummary(
+  userId: string | undefined,
+): Promise<UnreadChatSummary> {
+  if (!isSupabaseConfigured || !userId) {
+    return { totalUnread: 0, byConversation: {} };
+  }
+  try {
+    const supabase = await getSupabaseServerClient();
+    const { data, error } = await supabase.rpc("get_unread_counts");
+    if (error || !data) {
+      return { totalUnread: 0, byConversation: {} };
+    }
+    const byConversation: Record<string, number> = {};
+    let totalUnread = 0;
+    for (const row of data) {
+      const count = Number(row.unread_count) || 0;
+      if (count > 0) {
+        byConversation[row.conversation_id] = count;
+        totalUnread += count;
+      }
+    }
+    return { totalUnread, byConversation };
+  } catch {
+    return { totalUnread: 0, byConversation: {} };
+  }
+}
+
+export async function markConversationReadServer(
+  conversationId: string,
+  isBuyer: boolean,
+): Promise<void> {
+  if (!isSupabaseConfigured) return;
+  try {
+    const admin = getSupabaseAdminClient();
+    const { data: latestMsg } = await admin
+      .from("messages")
+      .select("created_at")
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const readTs = latestMsg?.created_at ?? new Date().toISOString();
+    await admin
+      .from("conversations")
+      .update(isBuyer ? { buyer_last_read_at: readTs } : { seller_last_read_at: readTs })
+      .eq("id", conversationId);
+  } catch (err) {
+    console.error("[markConversationReadServer] Error:", err);
+  }
 }
 
 export async function getBuyerOfferForListing(
@@ -533,11 +591,12 @@ export async function getMyConversations(userId: string): Promise<ConversationSu
     new Set(convs.flatMap((c) => [c.buyer_id, c.seller_id]).filter((id) => id !== userId)),
   );
 
-  const [{ data: listings }, { data: profiles }] = await Promise.all([
+  const [{ data: listings }, { data: profiles }, unreadSummary] = await Promise.all([
     supabase.from("listings").select("*").in("id", listingIds),
     profileIds.length
       ? lookup.from("public_profiles").select("*").in("id", profileIds)
       : Promise.resolve({ data: [] as PublicProfile[] }),
+    getUnreadChatSummary(userId),
   ]);
 
   const listingMap = new Map((listings ?? []).map((l) => [l.id, l]));
@@ -553,6 +612,7 @@ export async function getMyConversations(userId: string): Promise<ConversationSu
       listing,
       counterpart: profileMap.get(isBuyer ? conv.seller_id : conv.buyer_id) ?? null,
       perspective: isBuyer ? "buyer" : "seller",
+      unreadCount: unreadSummary.byConversation[conv.id] ?? 0,
     });
   }
   return items;

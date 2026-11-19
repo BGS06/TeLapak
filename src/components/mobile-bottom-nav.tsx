@@ -3,24 +3,36 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, MessageSquare, Package, PlusCircle, ShieldCheck, User } from "lucide-react";
+import { useUnreadChatCount } from "@/lib/use-unread-chat";
 
 export function MobileBottomNav({
   isLoggedIn,
   isAdmin,
   isVerified,
+  initialUnreadChat = 0,
 }: {
   isLoggedIn: boolean;
   isAdmin: boolean;
   isVerified: boolean;
+  initialUnreadChat?: number;
 }) {
   const pathname = usePathname();
+  const unreadChat = useUnreadChatCount(initialUnreadChat, isLoggedIn);
 
   // Sembunyikan bottom nav di halaman checkout pembayaran agar tidak bertumpuk dengan tombol bayar
   if (pathname.startsWith("/pay/")) {
     return null;
   }
 
-  const items = [
+  const items: Array<{
+    href: string;
+    label: string;
+    icon: typeof Home;
+    active: boolean;
+    highlight?: boolean;
+    dot?: boolean;
+    badge?: number;
+  }> = [
     {
       href: "/",
       label: "Katalog",
@@ -32,6 +44,7 @@ export function MobileBottomNav({
       label: "Chat",
       icon: MessageSquare,
       active: pathname.startsWith("/messages"),
+      badge: unreadChat,
     },
     {
       href: "/sell",
@@ -108,9 +121,16 @@ export function MobileBottomNav({
             >
               <div className="relative">
                 <Icon className={`h-5 w-5 ${item.active ? "stroke-[2.4px]" : "stroke-[1.9px]"}`} />
-                {item.dot && (
+                {item.badge && item.badge > 0 ? (
+                  <span
+                    aria-label={`${item.badge} pesan belum dibaca`}
+                    className="absolute -right-2 -top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#b3261e] px-1 text-[9px] leading-none font-bold text-white tabular-nums ring-2 ring-white"
+                  >
+                    {item.badge > 99 ? "99+" : item.badge}
+                  </span>
+                ) : item.dot ? (
                   <span className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-[#146c43] ring-2 ring-white" />
-                )}
+                ) : null}
               </div>
               <span>{item.label}</span>
             </Link>

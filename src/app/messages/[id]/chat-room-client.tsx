@@ -17,8 +17,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BUSINESS } from "@/config/business";
+import { triggerChatUnreadRefresh } from "@/lib/use-unread-chat";
 import { formatDateTime, formatIDR } from "@/lib/utils";
 import {
+  markConversationReadAction,
   respondToOfferAction,
   sendChatMessageAction,
   sendOfferAction,
@@ -57,10 +59,15 @@ export function ChatRoomClient({
   const [isPending, startTransition] = useTransition();
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
-  // Scroll otomatis ke pesan terbaru saat pesan bertambah
+  // Scroll otomatis ke pesan terbaru & tandai sudah dibaca saat pesan masuk terbuka
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages.length]);
+    if (document.visibilityState === "visible") {
+      void markConversationReadAction(conversationId).then(() => {
+        triggerChatUnreadRefresh();
+      });
+    }
+  }, [conversationId, messages.length]);
 
   // Sinkronisasi berkala setiap 5 detik saat tab aktif
   useEffect(() => {

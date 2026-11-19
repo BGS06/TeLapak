@@ -51,6 +51,8 @@ export async function startOrOpenConversationAction(
         listing_id: listing.id,
         buyer_id: profile.id,
         seller_id: listing.seller_id,
+        buyer_last_read_at: new Date().toISOString(),
+        seller_last_read_at: "1970-01-01T00:00:00.000Z",
         last_message_text: `Memulai diskusi untuk “${listing.title.slice(0, 40)}”`,
       })
       .select("id")
@@ -96,20 +98,28 @@ export async function sendChatMessageAction(input: {
       return fail("Kamu bukan peserta dalam ruang chat ini.");
     }
 
-    const { error } = await admin.from("messages").insert({
-      conversation_id: conv.id,
-      sender_id: profile.id,
-      message_type: "text",
-      body: text,
-    });
+    const { data: insertedMsg, error } = await admin
+      .from("messages")
+      .insert({
+        conversation_id: conv.id,
+        sender_id: profile.id,
+        message_type: "text",
+        body: text,
+      })
+      .select("created_at")
+      .single();
 
     if (error) return fail(mapDbError(error));
 
+    const msgTs = insertedMsg?.created_at ?? new Date().toISOString();
     await admin
       .from("conversations")
       .update({
         last_message_text: text.slice(0, 120),
-        last_message_at: new Date().toISOString(),
+        last_message_at: msgTs,
+        ...(profile.id === conv.buyer_id
+          ? { buyer_last_read_at: msgTs }
+          : { seller_last_read_at: msgTs }),
       })
       .eq("id", conv.id);
 
@@ -200,22 +210,30 @@ export async function sendOfferAction(input: {
         ? `Mengajukan harga balik (Counter Offer) sebesar ${formatIDR(amount)}`
         : `Menawar barang ini dengan harga ${formatIDR(amount)}`;
 
-    const { error } = await admin.from("messages").insert({
-      conversation_id: conv.id,
-      sender_id: profile.id,
-      message_type: "offer",
-      body: bodyText,
-      offer_amount_idr: amount,
-      offer_status: "pending",
-    });
+    const { data: insertedOffer, error } = await admin
+      .from("messages")
+      .insert({
+        conversation_id: conv.id,
+        sender_id: profile.id,
+        message_type: "offer",
+        body: bodyText,
+        offer_amount_idr: amount,
+        offer_status: "pending",
+      })
+      .select("created_at")
+      .single();
 
     if (error) return fail(mapDbError(error));
 
+    const offerTs = insertedOffer?.created_at ?? new Date().toISOString();
     await admin
       .from("conversations")
       .update({
         last_message_text: `Tawaran Harga: ${formatIDR(amount)}`,
-        last_message_at: new Date().toISOString(),
+        last_message_at: offerTs,
+        ...(profile.id === conv.buyer_id
+          ? { buyer_last_read_at: offerTs }
+          : { seller_last_read_at: offerTs }),
       })
       .eq("id", conv.id);
 
@@ -285,13 +303,18 @@ export async function respondToOfferAction(input: {
         ? `Tawaran ${formattedPrice} disetujui! Pembeli kini dapat menekan “Beli Sekarang” dengan harga kesepakatan ${formattedPrice}.`
         : `Tawaran ${formattedPrice} belum disetujui. Silakan ajukan nominal lain atau diskusikan di chat.`;
 
-    await admin.from("messages").insert({
-      conversation_id: conv.id,
-      sender_id: profile.id,
-      message_type: "system",
-      body: systemBody,
-    });
+    const { data: insertedSys } = await admin
+      .from("messages")
+      .insert({
+        conversation_id: conv.id,
+        sender_id: profile.id,
+        message_type: "system",
+        body: systemBody,
+      })
+      .select("created_at")
+      .single();
 
+    const sysTs = insertedSys?.created_at ?? new Date().toISOString();
     await admin
       .from("conversations")
       .update({
@@ -300,7 +323,10 @@ export async function respondToOfferAction(input: {
           input.decision === "accepted"
             ? `Kesepakatan Harga: ${formattedPrice}`
             : `Tawaran ${formattedPrice} ditolak`,
-        last_message_at: new Date().toISOString(),
+        last_message_at: sysTs,
+        ...(profile.id === conv.buyer_id
+          ? { buyer_last_read_at: sysTs }
+          : { seller_last_read_at: sysTs }),
       })
       .eq("id", conv.id);
 
@@ -316,5 +342,53 @@ export async function respondToOfferAction(input: {
   } catch (err) {
     console.error("[respondToOfferAction] Error:", err);
     return fail(err instanceof Error ? err.message : "Gagal memproses tawaran.");
+  }
+}
+
+/**
+ * Menandai seluruh pesan masuk di ruang chat sebagai sudah dibaca oleh pengguna saat ini.
+ */
+export async function markConversationReadAction(conversationId: string): Promise<ActionResult> {
+  try {
+    if (!isSupabaseConfigured) return ok(undefined);
+
+    const profile = await getCurrentProfile();
+    if (!profile) return ok(undefined);
+
+    const admin = getSupabaseAdminClient();
+    const { data: conv } = await admin
+      .from("conversations")
+      .select("id, buyer_id, seller_id")
+      .eq("id", conversationId)
+      .maybeSingle();
+
+    if (!conv) return ok(undefined);
+    if (conv.buyer_id !== profile.id && conv.seller_id !== profile.id) {
+      return ok(undefined);
+    }
+
+    const { data: latestMsg } = await admin
+      .from("messages")
+      .select("created_at")
+      .eq("conversation_id", conv.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const readTs = latestMsg?.created_at ?? new Date().toISOString();
+    await admin
+      .from("conversations")
+      .update(
+        conv.buyer_id === profile.id
+          ? { buyer_last_read_at: readTs }
+          : { seller_last_read_at: readTs },
+      )
+      .eq("id", conv.id);
+
+    revalidatePath("/messages");
+    return ok(undefined);
+  } catch (err) {
+    console.error("[markConversationReadAction] Error:", err);
+    return fail("Gagal memperbarui status baca pesan.");
   }
 }

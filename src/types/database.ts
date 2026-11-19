@@ -461,6 +461,8 @@ export type Database = {
           accepted_offer_idr: number | null;
           last_message_text: string;
           last_message_at: string;
+          buyer_last_read_at: string;
+          seller_last_read_at: string;
           created_at: string;
         };
         Insert: {
@@ -472,6 +474,8 @@ export type Database = {
           accepted_offer_idr?: number | null;
           last_message_text?: string;
           last_message_at?: string;
+          buyer_last_read_at?: string;
+          seller_last_read_at?: string;
           created_at?: string;
         };
         Update: {
@@ -483,6 +487,8 @@ export type Database = {
           accepted_offer_idr?: number | null;
           last_message_text?: string;
           last_message_at?: string;
+          buyer_last_read_at?: string;
+          seller_last_read_at?: string;
           created_at?: string;
         };
         Relationships: [];
@@ -621,6 +627,10 @@ export type Database = {
       moderate_report: {
         Args: { p_report_id: string; p_admin: string; p_action: string };
         Returns: undefined;
+      };
+      get_unread_counts: {
+        Args: Record<PropertyKey, never>;
+        Returns: { conversation_id: string; unread_count: number }[];
       };
     };
     Enums: {

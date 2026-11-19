@@ -8,7 +8,7 @@ import { SiteHeader } from "@/components/site-header";
 import { Badge } from "@/components/ui/badge";
 import { USER_TYPE_LABEL } from "@/config/constants";
 import { requireProfile } from "@/server/auth";
-import { getConversationDetail } from "@/server/queries";
+import { getConversationDetail, markConversationReadServer } from "@/server/queries";
 
 export const metadata: Metadata = {
   title: "Ruang Chat & Negosiasi",
@@ -31,6 +31,10 @@ export default async function ConversationRoomPage({
   const isBuyer = conversation.buyer_id === profile.id;
   const isSeller = conversation.seller_id === profile.id;
   if (!isBuyer && !isSeller && profile.role !== "admin") notFound();
+
+  if (isBuyer || isSeller) {
+    await markConversationReadServer(conversation.id, isBuyer);
+  }
 
   const counterpart = isBuyer ? seller : buyer;
   const counterpartName = counterpart?.first_name ?? "Civitas";
