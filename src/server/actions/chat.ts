@@ -69,11 +69,12 @@ export async function startOrOpenConversationAction(
 }
 
 /**
- * Mengirim pesan teks di dalam ruang chat.
+ * Mengirim pesan teks (dan/atau lampiran foto) di dalam ruang chat.
  */
 export async function sendChatMessageAction(input: {
   conversationId: string;
   body: string;
+  imageUrl?: string | null;
 }): Promise<ActionResult> {
   try {
     if (!isSupabaseConfigured) return fail("Supabase belum dikonfigurasi.");
@@ -82,9 +83,15 @@ export async function sendChatMessageAction(input: {
     if (!profile) return fail("Silakan masuk terlebih dahulu.");
     if (profile.is_suspended) return fail("Akunmu sedang ditangguhkan.");
 
-    const text = input.body.trim();
-    if (!text) return fail("Pesan tidak boleh kosong.");
-    if (text.length > 1000) return fail("Pesan maksimal 1.000 karakter.");
+    const cleanImageUrl = input.imageUrl?.trim() || null;
+    if (cleanImageUrl && !cleanImageUrl.startsWith("https://")) {
+      return fail("URL lampiran foto tidak valid.");
+    }
+
+    const rawText = input.body.trim();
+    if (!rawText && !cleanImageUrl) return fail("Pesan atau foto tidak boleh kosong.");
+    if (rawText.length > 1000) return fail("Pesan maksimal 1.000 karakter.");
+    const text = rawText || "Mengirim foto";
 
     const admin = getSupabaseAdminClient();
     const { data: conv } = await admin
@@ -105,6 +112,7 @@ export async function sendChatMessageAction(input: {
         sender_id: profile.id,
         message_type: "text",
         body: text,
+        image_url: cleanImageUrl,
       })
       .select("created_at")
       .single();
@@ -112,10 +120,16 @@ export async function sendChatMessageAction(input: {
     if (error) return fail(mapDbError(error));
 
     const msgTs = insertedMsg?.created_at ?? new Date().toISOString();
+    const previewText = cleanImageUrl
+      ? rawText
+        ? `📷 ${rawText.slice(0, 110)}`
+        : "📷 Mengirim foto"
+      : text.slice(0, 120);
+
     await admin
       .from("conversations")
       .update({
-        last_message_text: text.slice(0, 120),
+        last_message_text: previewText,
         last_message_at: msgTs,
         ...(profile.id === conv.buyer_id
           ? { buyer_last_read_at: msgTs }

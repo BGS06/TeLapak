@@ -18,6 +18,7 @@ import {
   SellerProfileForm,
   VerificationDocUploader,
 } from "@/app/profile/profile-client";
+import { ListingOwnerControls } from "@/components/listing-owner-controls";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { Badge } from "@/components/ui/badge";
@@ -387,6 +388,15 @@ export default async function ProfilePage() {
                               </span>
                             )}
                           </div>
+
+                          {(item.status === "active" || item.status === "removed") &&
+                            !item.taken_down_at && (
+                              <ListingOwnerControls
+                                listingId={item.id}
+                                status={item.status}
+                                compact
+                              />
+                            )}
                         </div>
                       </div>
                     );

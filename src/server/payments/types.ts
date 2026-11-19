@@ -4,7 +4,7 @@
  * gateway (Midtrans, DOKU, dst.) bisa diganti tanpa merombak alur pesanan.
  */
 
-export type PaymentProviderName = "mock" | "midtrans";
+export type PaymentProviderName = "mock" | "midtrans" | "doku";
 
 export type PaymentEventStatus = "paid" | "pending" | "expired" | "failed" | "refunded";
 

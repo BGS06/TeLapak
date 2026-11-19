@@ -15,9 +15,9 @@ export const serverEnv = {
   get supabaseServiceRoleKey() {
     return required("SUPABASE_SERVICE_ROLE_KEY");
   },
-  get paymentProvider(): "mock" | "midtrans" {
+  get paymentProvider(): "mock" | "midtrans" | "doku" {
     const value = (process.env.PAYMENT_PROVIDER ?? "mock").trim();
-    if (value !== "mock" && value !== "midtrans") {
+    if (value !== "mock" && value !== "midtrans" && value !== "doku") {
       throw new Error(`[env] PAYMENT_PROVIDER tidak dikenal: ${value}`);
     }
     return value;
@@ -26,6 +26,13 @@ export const serverEnv = {
     return required("MIDTRANS_SERVER_KEY");
   },
   midtransIsProduction: process.env.MIDTRANS_IS_PRODUCTION === "true",
+  get dokuClientId() {
+    return required("DOKU_CLIENT_ID");
+  },
+  get dokuSecretKey() {
+    return required("DOKU_SECRET_KEY");
+  },
+  dokuIsProduction: process.env.DOKU_IS_PRODUCTION === "true",
   resendApiKey: process.env.RESEND_API_KEY,
   emailFrom: process.env.EMAIL_FROM ?? "TeLapak <notifikasi@telapak.id>",
   adminNotificationEmail: process.env.ADMIN_NOTIFICATION_EMAIL,
@@ -33,3 +40,21 @@ export const serverEnv = {
     return required("CRON_SECRET");
   },
 };
+
+export function getIntegrationStatus() {
+  const provider = (process.env.PAYMENT_PROVIDER ?? "mock").trim();
+  const midtransReady = Boolean(process.env.MIDTRANS_SERVER_KEY?.trim());
+  const dokuReady = Boolean(
+    process.env.DOKU_CLIENT_ID?.trim() && process.env.DOKU_SECRET_KEY?.trim(),
+  );
+  const resendReady = Boolean(process.env.RESEND_API_KEY?.trim());
+  return {
+    paymentProvider: provider as "mock" | "midtrans" | "doku",
+    midtransReady,
+    midtransIsProduction: process.env.MIDTRANS_IS_PRODUCTION === "true",
+    dokuReady,
+    dokuIsProduction: process.env.DOKU_IS_PRODUCTION === "true",
+    resendReady,
+    emailFrom: serverEnv.emailFrom,
+  };
+}

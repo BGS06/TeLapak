@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { MESSAGES } from "@/config/constants";
 import { isSupabaseConfigured } from "@/lib/env";
+import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { listingSchema } from "@/lib/validations";
 import { getCurrentProfile, sellerReadiness } from "@/server/auth";
@@ -141,9 +142,72 @@ export async function toggleListingVisibilityAction(
 
   revalidatePath("/");
   revalidatePath(`/items/${listingId}`);
+  revalidatePath(`/sellers/${profile.id}`);
   revalidatePath("/profile");
   return ok(
     undefined,
-    nextStatus === "active" ? "Barang ditampilkan kembali di katalog." : "Barang disembunyikan dari katalog.",
+    nextStatus === "active"
+      ? "Barang ditampilkan kembali di katalog."
+      : "Barang diarsipkan dari katalog.",
   );
+}
+
+export async function deleteMyListingAction(listingId: string): Promise<ActionResult> {
+  try {
+    if (!isSupabaseConfigured) return fail("Supabase belum dikonfigurasi.");
+
+    const profile = await getCurrentProfile();
+    if (!profile) return fail("Silakan masuk terlebih dahulu.");
+
+    const admin = getSupabaseAdminClient();
+    const { data: listing } = await admin
+      .from("listings")
+      .select("id, seller_id, status, taken_down_at")
+      .eq("id", listingId)
+      .maybeSingle();
+
+    if (!listing || listing.seller_id !== profile.id) {
+      return fail("Barang tidak ditemukan atau bukan milikmu.");
+    }
+    if (listing.status === "reserved" || listing.status === "sold") {
+      return fail("Barang yang sedang dipesan atau sudah terjual tidak dapat dihapus.");
+    }
+    if (listing.taken_down_at) {
+      return fail("Barang yang diturunkan admin tidak dapat dihapus sendiri.");
+    }
+
+    const { count: orderCount } = await admin
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("listing_id", listing.id);
+
+    if ((orderCount ?? 0) > 0) {
+      // Tetap jaga integritas riwayat pesanan: arsipkan saja
+      await admin.from("listings").update({ status: "removed" }).eq("id", listing.id);
+      revalidatePath("/");
+      revalidatePath(`/items/${listing.id}`);
+      revalidatePath(`/sellers/${profile.id}`);
+      revalidatePath("/profile");
+      return ok(
+        undefined,
+        "Barang memiliki riwayat pesanan sehingga diarsipkan dari katalog (tidak dihapus permanen).",
+      );
+    }
+
+    const { error } = await admin
+      .from("listings")
+      .delete()
+      .eq("id", listing.id)
+      .eq("seller_id", profile.id);
+
+    if (error) return fail(mapDbError(error));
+
+    revalidatePath("/");
+    revalidatePath(`/sellers/${profile.id}`);
+    revalidatePath("/profile");
+    return ok(undefined, "Barang berhasil dihapus dari etalase.");
+  } catch (err) {
+    console.error("[deleteMyListingAction] Error:", err);
+    return fail("Gagal menghapus barang.");
+  }
 }

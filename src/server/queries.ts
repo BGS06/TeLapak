@@ -47,21 +47,31 @@ export const getActiveCampusForSession = cache(async (): Promise<Campus> => {
 // ---------------------------------------------------------------------
 // Katalog & Detail Barang (PRD §7.1, §7.2)
 // ---------------------------------------------------------------------
+export type CatalogSort = "newest" | "price_asc" | "price_desc";
+
 export interface CatalogFilter {
   campusId: string;
   q?: string;
   category?: Enums<"listing_category">;
   condition?: Enums<"listing_condition">;
+  meetingPoint?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  sort?: CatalogSort;
 }
 
 export async function getCatalogListings(filter: CatalogFilter): Promise<Listing[]> {
   const q = filter.q?.trim();
+  const sort = filter.sort ?? "newest";
 
   if (!isSupabaseConfigured) {
-    return DEMO_LISTINGS.filter((item) => {
+    const filtered = DEMO_LISTINGS.filter((item) => {
       if (item.status !== "active") return false;
       if (filter.category && item.category !== filter.category) return false;
       if (filter.condition && item.condition !== filter.condition) return false;
+      if (filter.meetingPoint && item.meeting_point !== filter.meetingPoint) return false;
+      if (filter.minPrice && item.price_idr < filter.minPrice) return false;
+      if (filter.maxPrice && item.price_idr > filter.maxPrice) return false;
       if (q) {
         const needle = q.toLowerCase();
         if (!item.title.toLowerCase().includes(needle) && !item.description.toLowerCase().includes(needle)) {
@@ -70,6 +80,9 @@ export async function getCatalogListings(filter: CatalogFilter): Promise<Listing
       }
       return true;
     });
+    if (sort === "price_asc") filtered.sort((a, b) => a.price_idr - b.price_idr);
+    else if (sort === "price_desc") filtered.sort((a, b) => b.price_idr - a.price_idr);
+    return filtered;
   }
 
   const supabase = await getSupabaseServerClient();
@@ -77,18 +90,31 @@ export async function getCatalogListings(filter: CatalogFilter): Promise<Listing
     .from("listings")
     .select("*")
     .eq("campus_id", filter.campusId)
-    .eq("status", "active")
-    .order("created_at", { ascending: false })
-    .limit(60);
+    .eq("status", "active");
 
   if (filter.category) query = query.eq("category", filter.category);
   if (filter.condition) query = query.eq("condition", filter.condition);
+  if (filter.meetingPoint) query = query.eq("meeting_point", filter.meetingPoint);
+  if (typeof filter.minPrice === "number" && filter.minPrice > 0) {
+    query = query.gte("price_idr", filter.minPrice);
+  }
+  if (typeof filter.maxPrice === "number" && filter.maxPrice > 0) {
+    query = query.lte("price_idr", filter.maxPrice);
+  }
   if (q) {
     const safe = q.replace(/[%_,()]/g, " ").trim();
     if (safe) query = query.or(`title.ilike.%${safe}%,description.ilike.%${safe}%`);
   }
 
-  const { data } = await query;
+  if (sort === "price_asc") {
+    query = query.order("price_idr", { ascending: true }).order("created_at", { ascending: false });
+  } else if (sort === "price_desc") {
+    query = query.order("price_idr", { ascending: false }).order("created_at", { ascending: false });
+  } else {
+    query = query.order("created_at", { ascending: false });
+  }
+
+  const { data } = await query.limit(60);
   return data ?? [];
 }
 
@@ -726,5 +752,81 @@ export async function getSellerReviewSummary(sellerId: string): Promise<SellerRe
     totalReviews: rawReviews.length,
     reviews,
   };
+}
+
+// ---------------------------------------------------------------------
+// Profil Publik Penjual (/sellers/[id]) & Hitungan Badge Pesanan Aktif
+// ---------------------------------------------------------------------
+export interface PublicSellerBundle {
+  seller: PublicProfile;
+  campus: Campus;
+  activeListings: Listing[];
+  soldCount: number;
+  reviewSummary: SellerReviewSummary;
+}
+
+export const getPublicSellerProfile = cache(
+  async (sellerId: string): Promise<PublicSellerBundle | null> => {
+    if (!isSupabaseConfigured) {
+      const seller = DEMO_SELLERS[sellerId];
+      if (!seller) return null;
+      const activeListings = DEMO_LISTINGS.filter(
+        (l) => l.seller_id === sellerId && l.status === "active",
+      );
+      return {
+        seller,
+        campus: DEMO_CAMPUS,
+        activeListings,
+        soldCount: 2,
+        reviewSummary: { averageRating: 0, totalReviews: 0, reviews: [] },
+      };
+    }
+
+    const supabase = await getSupabaseServerClient();
+    const lookup = getProfileLookupClient() ?? supabase;
+
+    const { data: seller } = await lookup
+      .from("public_profiles")
+      .select("*")
+      .eq("id", sellerId)
+      .maybeSingle();
+
+    if (!seller) return null;
+
+    const [{ data: campus }, { data: listings }, reviewSummary] = await Promise.all([
+      supabase.from("campuses").select("*").eq("id", seller.campus_id).maybeSingle(),
+      supabase
+        .from("listings")
+        .select("*")
+        .eq("seller_id", seller.id)
+        .in("status", ["active", "sold"])
+        .order("created_at", { ascending: false })
+        .limit(60),
+      getSellerReviewSummary(seller.id),
+    ]);
+
+    const activeListings = (listings ?? []).filter((l) => l.status === "active");
+    const soldCount = (listings ?? []).filter((l) => l.status === "sold").length;
+
+    return {
+      seller,
+      campus: campus ?? DEMO_CAMPUS,
+      activeListings,
+      soldCount,
+      reviewSummary,
+    };
+  },
+);
+
+export async function getPendingOrdersCount(userId: string | undefined): Promise<number> {
+  if (!isSupabaseConfigured || !userId) return 0;
+  try {
+    const supabase = await getSupabaseServerClient();
+    const { data, error } = await supabase.rpc("get_pending_orders_count");
+    if (error || typeof data !== "number") return 0;
+    return Math.max(0, data);
+  } catch {
+    return 0;
+  }
 }
 

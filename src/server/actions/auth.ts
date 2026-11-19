@@ -161,3 +161,71 @@ export async function signOutAction() {
   revalidatePath("/", "layout");
   redirect("/");
 }
+
+export async function requestPasswordResetAction(
+  emailRaw: string,
+): Promise<ActionResult> {
+  if (!isSupabaseConfigured) {
+    return fail("Supabase belum dikonfigurasi.");
+  }
+
+  const email = emailRaw.trim().toLowerCase();
+  if (!email || !email.includes("@")) {
+    return fail("Masukkan alamat email yang valid.");
+  }
+
+  try {
+    const supabase = await getSupabaseServerClient();
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${publicEnv.siteUrl}/auth/callback?next=/reset-password`,
+    });
+
+    if (error) {
+      return fail(mapDbError(error, "Gagal mengirim tautan pemulihan kata sandi."));
+    }
+
+    return ok(
+      undefined,
+      "Jika email tersebut terdaftar, tautan pemulihan kata sandi telah dikirim. Periksa kotak masuk atau folder spam.",
+    );
+  } catch (err) {
+    console.error("[requestPasswordResetAction] Error:", err);
+    return fail("Gagal memproses permintaan pemulihan kata sandi.");
+  }
+}
+
+export async function updatePasswordAction(
+  newPassword: string,
+): Promise<ActionResult> {
+  if (!isSupabaseConfigured) {
+    return fail("Supabase belum dikonfigurasi.");
+  }
+
+  if (newPassword.length < 8) {
+    return fail("Kata sandi baru minimal 8 karakter.");
+  }
+
+  try {
+    const supabase = await getSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return fail(
+        "Sesi pemulihan sudah berakhir atau tidak valid. Silakan minta tautan baru dari halaman Lupa Kata Sandi.",
+      );
+    }
+
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) {
+      return fail(mapDbError(error, "Gagal memperbarui kata sandi."));
+    }
+
+    revalidatePath("/", "layout");
+    return ok(undefined, "Kata sandi berhasil diperbarui! Kamu sudah masuk dengan sandi baru.");
+  } catch (err) {
+    console.error("[updatePasswordAction] Error:", err);
+    return fail("Terjadi kendala saat memperbarui kata sandi.");
+  }
+}

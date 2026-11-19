@@ -5,18 +5,30 @@ import { usePathname } from "next/navigation";
 
 export const CHAT_UNREAD_REFRESH_EVENT = "telapak:chat-unread-refresh";
 
-let inflightFetch: Promise<number | null> | null = null;
-const subscribers = new Set<(count: number) => void>();
+export interface NavAlertCounts {
+  unreadChat: number;
+  pendingOrders: number;
+}
 
-async function fetchUnreadCountShared(): Promise<number | null> {
+let inflightFetch: Promise<NavAlertCounts | null> | null = null;
+const subscribers = new Set<(counts: NavAlertCounts) => void>();
+
+async function fetchNavAlertsShared(): Promise<NavAlertCounts | null> {
   if (inflightFetch) return inflightFetch;
   inflightFetch = fetch("/api/chat/unread", { cache: "no-store" })
     .then(async (res) => {
       if (!res.ok) return null;
-      const json = (await res.json()) as { totalUnread?: number };
-      const count = typeof json.totalUnread === "number" ? Math.max(0, json.totalUnread) : 0;
-      subscribers.forEach((cb) => cb(count));
-      return count;
+      const json = (await res.json()) as {
+        totalUnread?: number;
+        pendingOrders?: number;
+      };
+      const counts: NavAlertCounts = {
+        unreadChat: typeof json.totalUnread === "number" ? Math.max(0, json.totalUnread) : 0,
+        pendingOrders:
+          typeof json.pendingOrders === "number" ? Math.max(0, json.pendingOrders) : 0,
+      };
+      subscribers.forEach((cb) => cb(counts));
+      return counts;
     })
     .catch(() => null)
     .finally(() => {
@@ -31,42 +43,51 @@ export function triggerChatUnreadRefresh(): void {
   }
 }
 
-export function useUnreadChatCount(initialUnread: number, enabled: boolean): number {
+export function useNavAlerts(
+  initialUnreadChat: number,
+  initialPendingOrders: number,
+  enabled: boolean,
+): NavAlertCounts {
   const pathname = usePathname();
-  const [count, setCount] = useState(initialUnread);
+  const [counts, setCounts] = useState<NavAlertCounts>({
+    unreadChat: initialUnreadChat,
+    pendingOrders: initialPendingOrders,
+  });
 
   useEffect(() => {
-    setCount(initialUnread);
-  }, [initialUnread]);
+    setCounts({
+      unreadChat: initialUnreadChat,
+      pendingOrders: initialPendingOrders,
+    });
+  }, [initialUnreadChat, initialPendingOrders]);
 
   useEffect(() => {
     if (!enabled) {
-      setCount(0);
+      setCounts({ unreadChat: 0, pendingOrders: 0 });
       return;
     }
 
-    subscribers.add(setCount);
+    subscribers.add(setCounts);
 
     const refresh = () => {
       if (document.visibilityState === "visible") {
-        void fetchUnreadCountShared();
+        void fetchNavAlertsShared();
       }
     };
 
-    // Segera sinkronkan saat navigasi halaman atau event kustom
-    void fetchUnreadCountShared();
+    void fetchNavAlertsShared();
 
     const intervalId = window.setInterval(refresh, 5000);
     const onVisibility = () => refresh();
-    const onFocus = () => void fetchUnreadCountShared();
-    const onCustomRefresh = () => void fetchUnreadCountShared();
+    const onFocus = () => void fetchNavAlertsShared();
+    const onCustomRefresh = () => void fetchNavAlertsShared();
 
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("focus", onFocus);
     window.addEventListener(CHAT_UNREAD_REFRESH_EVENT, onCustomRefresh);
 
     return () => {
-      subscribers.delete(setCount);
+      subscribers.delete(setCounts);
       window.clearInterval(intervalId);
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("focus", onFocus);
@@ -74,5 +95,9 @@ export function useUnreadChatCount(initialUnread: number, enabled: boolean): num
     };
   }, [enabled, pathname]);
 
-  return enabled ? count : 0;
+  return enabled ? counts : { unreadChat: 0, pendingOrders: 0 };
+}
+
+export function useUnreadChatCount(initialUnread: number, enabled: boolean): number {
+  return useNavAlerts(initialUnread, 0, enabled).unreadChat;
 }

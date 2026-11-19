@@ -79,7 +79,15 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-bold text-[#181512]">Kata Sandi</label>
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <label className="block text-xs font-bold text-[#181512]">Kata Sandi</label>
+            <Link
+              href="/forgot-password"
+              className="text-xs font-semibold text-[#b3261e] hover:underline"
+            >
+              Lupa kata sandi?
+            </Link>
+          </div>
           <Input
             type="password"
             required

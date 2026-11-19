@@ -3,21 +3,27 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, MessageSquare, Package, PlusCircle, ShieldCheck, User } from "lucide-react";
-import { useUnreadChatCount } from "@/lib/use-unread-chat";
+import { useNavAlerts } from "@/lib/use-unread-chat";
 
 export function MobileBottomNav({
   isLoggedIn,
   isAdmin,
   isVerified,
   initialUnreadChat = 0,
+  initialPendingOrders = 0,
 }: {
   isLoggedIn: boolean;
   isAdmin: boolean;
   isVerified: boolean;
   initialUnreadChat?: number;
+  initialPendingOrders?: number;
 }) {
   const pathname = usePathname();
-  const unreadChat = useUnreadChatCount(initialUnreadChat, isLoggedIn);
+  const { unreadChat, pendingOrders } = useNavAlerts(
+    initialUnreadChat,
+    initialPendingOrders,
+    isLoggedIn,
+  );
 
   // Sembunyikan bottom nav di halaman checkout pembayaran agar tidak bertumpuk dengan tombol bayar
   if (pathname.startsWith("/pay/")) {
@@ -58,6 +64,7 @@ export function MobileBottomNav({
       label: "Pesanan",
       icon: Package,
       active: pathname.startsWith("/orders"),
+      badge: pendingOrders,
     },
     {
       href: isLoggedIn ? "/profile" : "/login",

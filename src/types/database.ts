@@ -500,6 +500,7 @@ export type Database = {
           sender_id: string;
           message_type: MessageType;
           body: string;
+          image_url: string | null;
           offer_amount_idr: number | null;
           offer_status: OfferStatus | null;
           created_at: string;
@@ -510,6 +511,7 @@ export type Database = {
           sender_id: string;
           message_type?: MessageType;
           body: string;
+          image_url?: string | null;
           offer_amount_idr?: number | null;
           offer_status?: OfferStatus | null;
           created_at?: string;
@@ -520,6 +522,7 @@ export type Database = {
           sender_id?: string;
           message_type?: MessageType;
           body?: string;
+          image_url?: string | null;
           offer_amount_idr?: number | null;
           offer_status?: OfferStatus | null;
           created_at?: string;
@@ -631,6 +634,10 @@ export type Database = {
       get_unread_counts: {
         Args: Record<PropertyKey, never>;
         Returns: { conversation_id: string; unread_count: number }[];
+      };
+      get_pending_orders_count: {
+        Args: Record<PropertyKey, never>;
+        Returns: number;
       };
     };
     Enums: {

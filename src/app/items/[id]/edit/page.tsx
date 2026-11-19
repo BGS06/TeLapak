@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { ListingForm } from "@/components/listing-form";
+import { ListingOwnerControls } from "@/components/listing-owner-controls";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { requireProfile } from "@/server/auth";
@@ -63,12 +64,19 @@ export default async function EditItemPage({
             tidak dapat diubah.
           </div>
         ) : (
-          <ListingForm
-            userId={profile.id}
-            campusName={campus.name}
-            meetingPoints={campus.meeting_points}
-            initialListing={listing}
-          />
+          <>
+            <ListingForm
+              userId={profile.id}
+              campusName={campus.name}
+              meetingPoints={campus.meeting_points}
+              initialListing={listing}
+            />
+            <ListingOwnerControls
+              listingId={listing.id}
+              status={listing.status}
+              redirectAfterDelete="/profile"
+            />
+          </>
         )}
       </main>
 

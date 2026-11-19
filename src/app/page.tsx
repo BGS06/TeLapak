@@ -1,18 +1,27 @@
 import Link from "next/link";
 import { PackageOpen, Plus, ShieldCheck, X } from "lucide-react";
+import { CatalogFiltersBar } from "@/components/catalog-filters-bar";
 import { HeroCarousel } from "@/components/hero-carousel";
 import { ListingCard } from "@/components/listing-card";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { CATEGORIES, CONDITIONS, categoryLabel } from "@/config/constants";
-import { getActiveCampusForSession, getCatalogListings } from "@/server/queries";
+import {
+  getActiveCampusForSession,
+  getCatalogListings,
+  type CatalogSort,
+} from "@/server/queries";
 import type { Enums } from "@/types/database";
 
 interface HomeSearchParams {
   q?: string;
   category?: string;
   condition?: string;
+  meetingPoint?: string;
+  minPrice?: string;
+  maxPrice?: string;
+  sort?: string;
 }
 
 function buildFilterHref(current: HomeSearchParams, patch: Partial<HomeSearchParams>) {
@@ -21,6 +30,10 @@ function buildFilterHref(current: HomeSearchParams, patch: Partial<HomeSearchPar
   if (next.q?.trim()) params.set("q", next.q.trim());
   if (next.category) params.set("category", next.category);
   if (next.condition) params.set("condition", next.condition);
+  if (next.meetingPoint) params.set("meetingPoint", next.meetingPoint);
+  if (next.minPrice) params.set("minPrice", next.minPrice);
+  if (next.maxPrice) params.set("maxPrice", next.maxPrice);
+  if (next.sort && next.sort !== "newest") params.set("sort", next.sort);
   const qs = params.toString();
   return qs ? `/?${qs}` : "/";
 }
@@ -38,16 +51,44 @@ export default async function HomePage({
     | Enums<"listing_condition">
     | undefined;
   const q = params.q?.trim() ?? "";
+  const sort: CatalogSort =
+    params.sort === "price_asc" || params.sort === "price_desc" ? params.sort : "newest";
+  const minPriceNum = params.minPrice ? Number(params.minPrice) : undefined;
+  const maxPriceNum = params.maxPrice ? Number(params.maxPrice) : undefined;
+  const minPrice =
+    typeof minPriceNum === "number" && Number.isFinite(minPriceNum) && minPriceNum > 0
+      ? minPriceNum
+      : undefined;
+  const maxPrice =
+    typeof maxPriceNum === "number" && Number.isFinite(maxPriceNum) && maxPriceNum > 0
+      ? maxPriceNum
+      : undefined;
 
   const campus = await getActiveCampusForSession();
+  const activeMeetingPoint = campus.meeting_points.includes(params.meetingPoint ?? "")
+    ? params.meetingPoint
+    : undefined;
+
   const listings = await getCatalogListings({
     campusId: campus.id,
     q,
     category: activeCategory,
     condition: activeCondition,
+    meetingPoint: activeMeetingPoint,
+    minPrice,
+    maxPrice,
+    sort,
   });
 
-  const hasFilter = Boolean(q || activeCategory || activeCondition);
+  const hasFilter = Boolean(
+    q ||
+      activeCategory ||
+      activeCondition ||
+      activeMeetingPoint ||
+      minPrice ||
+      maxPrice ||
+      sort !== "newest",
+  );
 
   const catalogHeading = q
     ? `Hasil pencarian “${q}”`
@@ -63,47 +104,57 @@ export default async function HomePage({
       {!hasFilter && <HeroCarousel campusName={campus.name} />}
 
       <main className="mx-auto w-full max-w-[1280px] flex-1 px-4 pt-5 pb-12">
-        {/* Toolbar Filter Kondisi */}
-        <section
-          aria-label="Filter kondisi barang"
-          className="flex flex-col gap-3 border-b border-[#edf2f2] pb-4 sm:flex-row sm:items-center sm:justify-between"
-        >
-          <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto">
-            <span className="mr-1 shrink-0 text-xs font-medium text-[#8c8c8c]">Kondisi:</span>
-            <Link
-              href={buildFilterHref(params, { condition: undefined })}
-              className={`shrink-0 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${
-                !activeCondition
-                  ? "border-[#b3261e] bg-[#fdf2f2] font-semibold text-[#b3261e]"
-                  : "border-[#d9dfdf] bg-white text-[#666666] hover:bg-[#f2f4f4]"
-              }`}
-            >
-              Semua
-            </Link>
-            {CONDITIONS.map((cond) => {
-              const selected = activeCondition === cond.value;
-              return (
-                <Link
-                  key={cond.value}
-                  href={buildFilterHref(params, {
-                    condition: selected ? undefined : cond.value,
-                  })}
-                  className={`shrink-0 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${
-                    selected
-                      ? "border-[#b3261e] bg-[#b3261e] font-semibold text-white"
-                      : "border-[#d9dfdf] bg-white text-[#666666] hover:bg-[#f2f4f4]"
-                  }`}
-                >
-                  {cond.label}
-                </Link>
-              );
-            })}
+        {/* Toolbar Filter Kondisi, Harga, Titik COD, & Sortir */}
+        <section aria-label="Filter barang" className="space-y-3 border-b border-[#edf2f2] pb-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto">
+              <span className="mr-1 shrink-0 text-xs font-medium text-[#8c8c8c]">Kondisi:</span>
+              <Link
+                href={buildFilterHref(params, { condition: undefined })}
+                className={`shrink-0 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${
+                  !activeCondition
+                    ? "border-[#b3261e] bg-[#fdf2f2] font-semibold text-[#b3261e]"
+                    : "border-[#d9dfdf] bg-white text-[#666666] hover:bg-[#f2f4f4]"
+                }`}
+              >
+                Semua
+              </Link>
+              {CONDITIONS.map((cond) => {
+                const selected = activeCondition === cond.value;
+                return (
+                  <Link
+                    key={cond.value}
+                    href={buildFilterHref(params, {
+                      condition: selected ? undefined : cond.value,
+                    })}
+                    className={`shrink-0 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${
+                      selected
+                        ? "border-[#b3261e] bg-[#b3261e] font-semibold text-white"
+                        : "border-[#d9dfdf] bg-white text-[#666666] hover:bg-[#f2f4f4]"
+                    }`}
+                  >
+                    {cond.label}
+                  </Link>
+                );
+              })}
+            </div>
+
+            <span className="inline-flex items-center gap-1.5 self-start rounded-md bg-[#f2f4f4] px-3 py-1.5 text-xs font-medium text-[#171717] sm:self-auto">
+              <ShieldCheck className="h-4 w-4 shrink-0 text-[#b3261e]" />
+              Perlindungan Transaksi Aktif
+            </span>
           </div>
 
-          <span className="inline-flex items-center gap-1.5 self-start rounded-md bg-[#f2f4f4] px-3 py-1.5 text-xs font-medium text-[#171717] sm:self-auto">
-            <ShieldCheck className="h-4 w-4 shrink-0 text-[#b3261e]" />
-            Perlindungan Transaksi Aktif
-          </span>
+          <CatalogFiltersBar
+            q={q || undefined}
+            category={activeCategory}
+            condition={activeCondition}
+            meetingPoint={activeMeetingPoint}
+            minPrice={minPrice ? String(minPrice) : undefined}
+            maxPrice={maxPrice ? String(maxPrice) : undefined}
+            sort={sort}
+            meetingPoints={campus.meeting_points}
+          />
         </section>
 
         {/* Judul Katalog & Jumlah Barang */}

@@ -6,6 +6,7 @@ import {
   Check,
   CheckCircle2,
   HandCoins,
+  ImagePlus,
   Loader2,
   Send,
   ShoppingBag,
@@ -17,6 +18,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BUSINESS } from "@/config/business";
+import { validateAndCompressImage } from "@/lib/image";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { triggerChatUnreadRefresh } from "@/lib/use-unread-chat";
 import { formatDateTime, formatIDR } from "@/lib/utils";
 import {
@@ -51,6 +54,9 @@ export function ChatRoomClient({
 }: ChatRoomClientProps) {
   const router = useRouter();
   const [text, setText] = useState("");
+  const [attachedImageUrl, setAttachedImageUrl] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [offerOpen, setOfferOpen] = useState(false);
   const [offerAmount, setOfferAmount] = useState<string>(
     String(Math.max(BUSINESS.minListingPriceIdr, Math.round((listing.price_idr * 0.9) / 1000) * 1000)),
@@ -58,6 +64,7 @@ export function ChatRoomClient({
   const [offerNote, setOfferNote] = useState("");
   const [isPending, startTransition] = useTransition();
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Scroll otomatis ke pesan terbaru & tandai sudah dibaca saat pesan masuk terbuka
   useEffect(() => {
@@ -86,16 +93,51 @@ export function ChatRoomClient({
     { label: "-20%", value: Math.round((listing.price_idr * 0.8) / 1000) * 1000 },
   ].filter((p) => p.value >= BUSINESS.minListingPriceIdr && p.value < listing.price_idr);
 
+  const handlePickPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    setUploadingImage(true);
+    try {
+      const compressed = await validateAndCompressImage(file);
+      const supabase = getSupabaseBrowserClient();
+      const filePath = `${currentUserId}/${conversationId}/${crypto.randomUUID()}.webp`;
+      const { error } = await supabase.storage
+        .from("chat-attachments")
+        .upload(filePath, compressed, { contentType: "image/webp", upsert: false });
+
+      if (error) {
+        toast.error(`Gagal mengunggah foto: ${error.message}`);
+        return;
+      }
+
+      const { data: pub } = supabase.storage.from("chat-attachments").getPublicUrl(filePath);
+      setAttachedImageUrl(pub.publicUrl);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Gagal memproses foto.");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const handleSendText = (e: React.FormEvent) => {
     e.preventDefault();
     const clean = text.trim();
-    if (!clean) return;
+    const imgUrl = attachedImageUrl;
+    if (!clean && !imgUrl) return;
     setText("");
+    setAttachedImageUrl(null);
     startTransition(async () => {
-      const res = await sendChatMessageAction({ conversationId, body: clean });
+      const res = await sendChatMessageAction({
+        conversationId,
+        body: clean,
+        imageUrl: imgUrl,
+      });
       if (!res.ok) {
         toast.error(res.error);
         setText(clean);
+        setAttachedImageUrl(imgUrl);
         return;
       }
       router.refresh();
@@ -369,7 +411,24 @@ export function ChatRoomClient({
                     : "rounded-bl-xs border border-[#edf2f2] bg-[#f2f4f4] text-[#171717]"
                 }`}
               >
-                <p className="whitespace-pre-line leading-relaxed">{msg.body}</p>
+                {msg.image_url && (
+                  <button
+                    type="button"
+                    onClick={() => setLightboxUrl(msg.image_url)}
+                    className="mb-2 block cursor-pointer overflow-hidden rounded-xl border border-black/10"
+                    title="Perbesar foto"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={msg.image_url}
+                      alt="Foto lampiran chat"
+                      className="max-h-64 w-full max-w-[260px] object-cover transition hover:opacity-95"
+                    />
+                  </button>
+                )}
+                {(!msg.image_url || msg.body !== "Mengirim foto") && (
+                  <p className="whitespace-pre-line leading-relaxed">{msg.body}</p>
+                )}
                 <span
                   className={`mt-1 block text-right text-[10px] ${
                     isMine ? "text-white/75" : "text-[#8c8c8c]"
@@ -385,17 +444,53 @@ export function ChatRoomClient({
         <div ref={bottomRef} />
       </div>
 
+      {/* Pratinjau Foto Lampiran Sebelum Dikirim */}
+      {attachedImageUrl && (
+        <div className="flex items-center gap-3 border-t border-[#edf2f2] bg-[#f2f4f4]/60 px-3.5 py-2">
+          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-[#d9dfdf] bg-white">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={attachedImageUrl}
+              alt="Pratinjau lampiran"
+              className="h-full w-full object-cover"
+            />
+          </div>
+          <div className="min-w-0 flex-1 text-xs">
+            <p className="font-semibold text-[#171717]">Foto siap dikirim</p>
+            <p className="text-[11px] text-[#666666]">
+              Tambahkan keterangan di kolom pesan atau langsung tekan Kirim.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setAttachedImageUrl(null)}
+            className="cursor-pointer rounded-md p-1.5 text-[#8c8c8c] hover:bg-white hover:text-[#b3261e]"
+            title="Hapus lampiran foto"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       {/* Form Input Chat Bawah */}
       <form
         onSubmit={handleSendText}
         className="flex items-center gap-2 border-t border-[#edf2f2] bg-white p-3"
       >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={handlePickPhoto}
+        />
+
         {listing.status === "active" && (
           <Button
             type="button"
             variant="outline"
             size="md"
-            className="shrink-0 px-3"
+            className="shrink-0 px-2.5 sm:px-3"
             onClick={() => setOfferOpen(true)}
             title="Ajukan Tawaran Harga (Make Offer)"
           >
@@ -403,6 +498,22 @@ export function ChatRoomClient({
             <span className="hidden sm:inline">Tawar</span>
           </Button>
         )}
+
+        <Button
+          type="button"
+          variant="secondary"
+          size="md"
+          className="shrink-0 px-2.5"
+          disabled={uploadingImage || isPending}
+          onClick={() => fileInputRef.current?.click()}
+          title="Kirim Foto Detail Barang"
+        >
+          {uploadingImage ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <ImagePlus className="h-4 w-4" />
+          )}
+        </Button>
 
         <Input
           value={text}
@@ -416,13 +527,37 @@ export function ChatRoomClient({
           type="submit"
           variant="primary"
           size="md"
-          disabled={isPending || !text.trim()}
+          disabled={isPending || uploadingImage || (!text.trim() && !attachedImageUrl)}
           className="shrink-0"
         >
           {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           <span className="hidden sm:inline">Kirim</span>
         </Button>
       </form>
+
+      {/* Lightbox Foto Chat */}
+      {lightboxUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-xs"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setLightboxUrl(null)}
+            className="absolute right-4 top-4 cursor-pointer rounded-full bg-white/15 p-2 text-white hover:bg-white/25"
+            aria-label="Tutup pratinjau foto"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightboxUrl}
+            alt="Detail foto lampiran chat"
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-[85dvh] max-w-[92vw] rounded-xl object-contain shadow-2xl"
+          />
+        </div>
+      )}
 
       {/* Modal / Bottom Sheet Make Offer (Tawar Harga) */}
       {offerOpen && (

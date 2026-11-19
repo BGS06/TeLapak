@@ -215,3 +215,26 @@ export async function moderateReportAction(input: {
         : "Laporan ditutup.";
   return ok(undefined, message);
 }
+
+/**
+ * 5. Uji kirim email transaksional (Resend) ke email admin yang sedang login.
+ */
+export async function sendTestEmailAction(): Promise<ActionResult> {
+  if (!isSupabaseConfigured) return fail("Supabase belum dikonfigurasi.");
+  const adminProfile = await requireAdmin();
+
+  if (!process.env.RESEND_API_KEY?.trim()) {
+    return fail(
+      "RESEND_API_KEY belum diisi di .env.local / Vercel Environment Variables. Email masih berjalan di mode log konsol.",
+    );
+  }
+
+  await sendEmail({
+    to: adminProfile.email,
+    subject: "[TeLapak] Uji Koneksi Email Transaksional Resend Berhasil",
+    text: `Halo ${adminProfile.full_name},\n\nIni adalah email uji coba dari Panel Admin TeLapak. Integrasi Resend untuk notifikasi pembayaran, pengingat H+2, sengketa, dan pencairan dana telah aktif.`,
+    html: `<p>Halo <strong>${adminProfile.full_name}</strong>,</p><p>Ini adalah email uji coba dari <strong>Panel Admin TeLapak</strong>. Integrasi <strong>Resend</strong> untuk notifikasi pembayaran, pengingat H+2, sengketa, dan pencairan dana sudah aktif.</p>`,
+  });
+
+  return ok(undefined, `Email uji coba berhasil dikirim ke ${adminProfile.email}.`);
+}

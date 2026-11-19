@@ -267,15 +267,20 @@ export default async function ItemDetailPage({
               </div>
             </div>
 
-            {/* Kartu Profil Penjual + Rating Bintang */}
-            <div className="flex items-center justify-between rounded-lg border border-[#edf2f2] bg-white p-4">
+            {/* Kartu Profil Penjual + Rating Bintang (Klik untuk lihat etalase publik) */}
+            <Link
+              href={`/sellers/${seller.id}`}
+              className="group flex items-center justify-between rounded-lg border border-[#edf2f2] bg-white p-4 transition hover:border-[#b3261e]/40 hover:bg-[#fdf2f2]/30"
+            >
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#f2f4f4] text-sm font-bold text-[#171717]">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#f2f4f4] text-sm font-bold text-[#171717] transition group-hover:bg-[#b3261e] group-hover:text-white">
                   {initials(seller.first_name)}
                 </div>
                 <div>
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-sm font-bold text-[#171717]">{seller.first_name}</span>
+                    <span className="text-sm font-bold text-[#171717] group-hover:text-[#b3261e]">
+                      {seller.first_name}
+                    </span>
                     <span className="rounded bg-[#f2f4f4] px-1.5 py-0.5 text-[11px] font-medium text-[#666666]">
                       {USER_TYPE_LABEL[seller.user_type]}
                     </span>
@@ -294,10 +299,11 @@ export default async function ItemDetailPage({
                   )}
                 </div>
               </div>
-              <span className="max-w-[120px] text-right text-[11px] leading-tight text-[#8c8c8c]">
-                Bisa Chat & Tawar Harga
+              <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-[#b3261e]">
+                Lihat Etalase
+                <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
               </span>
-            </div>
+            </Link>
 
             {/* Info Perlindungan Transaksi Ringkas */}
             <div className="flex items-start gap-2.5 rounded-lg border border-[#edf2f2] bg-[#f2f4f4]/70 p-3.5 text-xs text-[#666666]">

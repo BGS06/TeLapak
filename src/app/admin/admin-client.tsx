@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   ExternalLink,
   Loader2,
+  Mail,
   RotateCcw,
   Send,
   Trash2,
@@ -21,6 +22,7 @@ import {
   moderateReportAction,
   resolveDisputeAction,
   reviewVerificationAction,
+  sendTestEmailAction,
 } from "@/server/actions/admin";
 
 // 1. Aksi Verifikasi Alumni/Dosen --------------------------------------------
@@ -292,5 +294,39 @@ export function ReportModerationControls({
         Abaikan Laporan
       </Button>
     </div>
+  );
+}
+
+// 5. Tombol Uji Koneksi Resend Email ------------------------------------------
+export function TestResendEmailButton({ resendReady }: { resendReady: boolean }) {
+  const [isPending, startTransition] = useTransition();
+
+  const handleTest = () => {
+    startTransition(async () => {
+      const res = await sendTestEmailAction();
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(res.message);
+    });
+  };
+
+  return (
+    <Button
+      type="button"
+      variant="secondary"
+      size="sm"
+      disabled={isPending || !resendReady}
+      onClick={handleTest}
+      title={
+        resendReady
+          ? "Kirim email uji coba ke akun adminmu via Resend"
+          : "Isi RESEND_API_KEY di Environment Variables terlebih dahulu"
+      }
+    >
+      {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+      Uji Email Resend
+    </Button>
   );
 }

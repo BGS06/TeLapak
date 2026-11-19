@@ -1,5 +1,6 @@
 import "server-only";
 import { serverEnv } from "@/server/env";
+import { DokuProvider } from "./doku";
 import { MidtransProvider } from "./midtrans";
 import { MockProvider } from "./mock";
 import type { PaymentProvider, PaymentProviderName } from "./types";
@@ -9,6 +10,7 @@ export * from "./types";
 const registry: Record<PaymentProviderName, () => PaymentProvider> = {
   mock: () => new MockProvider(),
   midtrans: () => new MidtransProvider(),
+  doku: () => new DokuProvider(),
 };
 
 export function isPaymentProviderName(value: string): value is PaymentProviderName {

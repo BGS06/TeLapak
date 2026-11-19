@@ -2,7 +2,6 @@ import Link from "next/link";
 import {
   ChevronDown,
   MapPin,
-  Package,
   Plus,
   Search,
   ShieldCheck,
@@ -10,13 +9,18 @@ import {
 } from "lucide-react";
 import { ChatNavLink } from "@/components/chat-nav-link";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
+import { OrdersNavLink } from "@/components/orders-nav-link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BUSINESS } from "@/config/business";
 import { CATEGORIES } from "@/config/constants";
 import { isSupabaseConfigured } from "@/lib/env";
 import { firstName } from "@/lib/utils";
 import { getCurrentProfile } from "@/server/auth";
-import { getActiveCampusForSession, getUnreadChatSummary } from "@/server/queries";
+import {
+  getActiveCampusForSession,
+  getPendingOrdersCount,
+  getUnreadChatSummary,
+} from "@/server/queries";
 
 export async function SiteHeader({
   initialQuery = "",
@@ -30,9 +34,12 @@ export async function SiteHeader({
     getActiveCampusForSession(),
   ]);
 
-  const unreadSummary = profile
-    ? await getUnreadChatSummary(profile.id)
-    : { totalUnread: 0, byConversation: {} };
+  const [unreadSummary, pendingOrdersCount] = profile
+    ? await Promise.all([
+        getUnreadChatSummary(profile.id),
+        getPendingOrdersCount(profile.id),
+      ])
+    : [{ totalUnread: 0, byConversation: {} }, 0];
 
   return (
     <>
@@ -103,13 +110,7 @@ export async function SiteHeader({
               {profile && (
                 <>
                   <ChatNavLink initialUnread={unreadSummary.totalUnread} />
-                  <Link
-                    href="/orders"
-                    className="hidden h-9 items-center gap-1.5 rounded-md px-3 text-xs font-medium text-[#666666] transition hover:bg-[#f2f4f4] hover:text-[#171717] md:inline-flex"
-                  >
-                    <Package className="h-4 w-4" />
-                    <span>Pesanan</span>
-                  </Link>
+                  <OrdersNavLink initialPendingOrders={pendingOrdersCount} />
                 </>
               )}
 
@@ -208,6 +209,7 @@ export async function SiteHeader({
         isAdmin={profile?.role === "admin"}
         isVerified={profile?.verification_status === "verified"}
         initialUnreadChat={unreadSummary.totalUnread}
+        initialPendingOrders={pendingOrdersCount}
       />
     </>
   );

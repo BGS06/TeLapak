@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   AlertTriangle,
+  CreditCard,
   ExternalLink,
   FileCheck2,
   Flag,
+  Mail,
   ShieldCheck,
   Wallet,
 } from "lucide-react";
@@ -12,6 +14,7 @@ import {
   DisputeResolutionControls,
   PayoutTransferControls,
   ReportModerationControls,
+  TestResendEmailButton,
   VerificationDecisionControls,
 } from "@/app/admin/admin-client";
 import { SiteFooter } from "@/components/site-footer";
@@ -19,8 +22,10 @@ import { SiteHeader } from "@/components/site-header";
 import { Badge } from "@/components/ui/badge";
 import { BUSINESS } from "@/config/business";
 import { USER_TYPE_LABEL, payoutMethodLabel } from "@/config/constants";
+import { publicEnv } from "@/lib/env";
 import { formatDateTime, formatIDR, formatWhatsApp, orderCode } from "@/lib/utils";
 import { requireAdmin } from "@/server/auth";
+import { getIntegrationStatus } from "@/server/env";
 import { getAdminDashboardData } from "@/server/queries";
 
 export const metadata: Metadata = {
@@ -36,6 +41,8 @@ export default async function AdminPage({
 }) {
   await requireAdmin();
   const [params, data] = await Promise.all([searchParams, getAdminDashboardData()]);
+  const integration = getIntegrationStatus();
+  const webhookUrl = `${publicEnv.siteUrl}/api/payments/webhook/${integration.paymentProvider}`;
 
   const activeTab: AdminTab =
     params.tab === "sengketa" || params.tab === "payout" || params.tab === "laporan"
@@ -88,6 +95,69 @@ export default async function AdminPage({
             </p>
           </div>
         </div>
+
+        {/* Ringkasan Status Integrasi Pembayaran (Midtrans / DOKU) & Email (Resend) */}
+        <section className="grid gap-3 sm:grid-cols-2">
+          <div className="flex flex-col justify-between gap-2 rounded-xl border border-[#e6e0d6] bg-white p-4">
+            <div className="flex items-center justify-between gap-2">
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#181512]">
+                <CreditCard className="h-4 w-4 text-[#b3261e]" />
+                Payment Gateway QRIS
+              </span>
+              <Badge
+                tone={
+                  integration.paymentProvider === "mock"
+                    ? "warning"
+                    : (integration.paymentProvider === "midtrans" && integration.midtransReady) ||
+                        (integration.paymentProvider === "doku" && integration.dokuReady)
+                      ? "success"
+                      : "danger"
+                }
+              >
+                {integration.paymentProvider === "mock"
+                  ? "Simulasi (Mock)"
+                  : integration.paymentProvider === "midtrans"
+                    ? `Midtrans (${integration.midtransIsProduction ? "Produksi" : "Sandbox"})`
+                    : `DOKU (${integration.dokuIsProduction ? "Produksi" : "Sandbox"})`}
+              </Badge>
+            </div>
+            <p className="text-[11px] leading-relaxed text-[#57524c]">
+              Webhook aktif:{" "}
+              <code className="break-all rounded bg-[#f3efe9] px-1.5 py-0.5 text-[10px] text-[#181512]">
+                {webhookUrl}
+              </code>
+            </p>
+            <p className="text-[11px] text-[#857e76]">
+              Ganti <code className="font-semibold">PAYMENT_PROVIDER</code> ke{" "}
+              <code className="font-semibold">midtrans</code> atau{" "}
+              <code className="font-semibold">doku</code> di Vercel Env Vars saat siap QRIS asli.
+            </p>
+          </div>
+
+          <div className="flex flex-col justify-between gap-2 rounded-xl border border-[#e6e0d6] bg-white p-4">
+            <div className="flex items-center justify-between gap-2">
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#181512]">
+                <Mail className="h-4 w-4 text-[#b3261e]" />
+                Email Transaksional (Resend)
+              </span>
+              <Badge tone={integration.resendReady ? "success" : "warning"}>
+                {integration.resendReady ? "Resend Aktif" : "Mode Log Dev"}
+              </Badge>
+            </div>
+            <p className="text-[11px] text-[#57524c]">
+              Pengirim:{" "}
+              <code className="rounded bg-[#f3efe9] px-1.5 py-0.5 text-[10px] text-[#181512]">
+                {integration.emailFrom}
+              </code>
+            </p>
+            <div className="flex items-center justify-between gap-2 pt-0.5">
+              <span className="text-[11px] text-[#857e76]">
+                Bayar, H+2 auto-release, sengketa, payout
+              </span>
+              <TestResendEmailButton resendReady={integration.resendReady} />
+            </div>
+          </div>
+        </section>
 
         {/* Navigasi 4 Tab Panel Admin (PRD §7.5) */}
         <div className="no-scrollbar flex items-center gap-2 overflow-x-auto border-b border-[#e6e0d6] pb-3">
