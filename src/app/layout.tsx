@@ -12,6 +12,14 @@ export const metadata: Metadata = {
   },
   description: BUSINESS.tagline,
   applicationName: BUSINESS.productName,
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: BUSINESS.productName,
+  },
+  formatDetection: {
+    telephone: false,
+  },
   openGraph: {
     type: "website",
     locale: "id_ID",
@@ -22,17 +30,26 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#007782",
+  themeColor: "#b3261e",
   width: "device-width",
   initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id">
-      <body className="flex min-h-dvh flex-col antialiased">
+      <body className="flex min-h-dvh flex-col antialiased selection:bg-[#fdeceb] selection:text-[#b3261e]">
         {children}
-        <Toaster position="top-center" richColors closeButton />
+        <Toaster
+          position="top-center"
+          richColors
+          closeButton
+          toastOptions={{
+            className: "text-xs sm:text-sm rounded-2xl shadow-lg",
+          }}
+        />
       </body>
     </html>
   );

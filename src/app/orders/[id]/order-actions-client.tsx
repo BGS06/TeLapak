@@ -229,10 +229,11 @@ export function PaidHeldActions({
         </Button>
       </div>
 
-      {/* Modal Konfirmasi Barang Diterima */}
+      {/* Modal / Bottom Sheet Konfirmasi Barang Diterima (responsif di Android & iOS) */}
       {confirmModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-[#e6e0d6] bg-white p-5 shadow-xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 backdrop-blur-2xs sm:items-center sm:p-4">
+          <div className="animate-sheet-up w-full max-w-md rounded-t-2xl border border-[#e6e0d6] bg-white p-5 pb-safe shadow-xl space-y-4 sm:rounded-2xl sm:pb-5">
+            <div className="mx-auto mb-1 h-1.5 w-10 rounded-full bg-[#d9dfdf] sm:hidden" />
             <h3 className="text-base font-bold text-[#181512]">
               Konfirmasi Barang Sudah Diterima?
             </h3>
@@ -264,16 +265,17 @@ export function PaidHeldActions({
         </div>
       )}
 
-      {/* Modal Laporkan Masalah / Sengketa */}
+      {/* Modal / Bottom Sheet Laporkan Masalah / Sengketa (responsif di Android & iOS) */}
       {disputeModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-[#e6e0d6] bg-white p-5 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 backdrop-blur-2xs sm:items-center sm:p-4">
+          <div className="animate-sheet-up w-full max-w-md rounded-t-2xl border border-[#e6e0d6] bg-white p-5 pb-safe shadow-xl sm:rounded-2xl sm:pb-5">
+            <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-[#d9dfdf] sm:hidden" />
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold text-[#181512]">Laporkan Masalah Transaksi</h3>
               <button
                 type="button"
                 onClick={() => setDisputeModalOpen(false)}
-                className="rounded-lg p-1 text-[#857e76] hover:bg-[#f3efe9]"
+                className="rounded-lg p-1.5 text-[#857e76] hover:bg-[#f3efe9]"
               >
                 <X className="h-4 w-4" />
               </button>

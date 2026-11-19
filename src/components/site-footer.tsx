@@ -4,7 +4,7 @@ import { BUSINESS } from "@/config/business";
 
 export function SiteFooter() {
   return (
-    <footer className="mt-16 bg-[#b3261e] text-white">
+    <footer className="mt-16 bg-[#b3261e] text-white mb-safe-nav md:pb-0">
       <div className="mx-auto max-w-[1280px] px-4 py-10">
         {/* 3 Pilar Keamanan Transaksi Kampus */}
         <div className="grid gap-6 sm:grid-cols-3">

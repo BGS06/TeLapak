@@ -1,9 +1,15 @@
 import type { Enums } from "@/types/database";
 
 export const CATEGORIES: { value: Enums<"listing_category">; label: string }[] = [
-  { value: "parfum", label: "Parfum" },
+  { value: "elektronik", label: "Elektronik & Gadget" },
+  { value: "buku", label: "Buku & Modul" },
+  { value: "fashion", label: "Fashion Kampus" },
+  { value: "sepatu", label: "Sepatu & Tas" },
+  { value: "parfum", label: "Parfum & Care" },
   { value: "aksesoris", label: "Aksesoris" },
-  { value: "elektronik", label: "Elektronik" },
+  { value: "kos", label: "Perlengkapan Kos" },
+  { value: "hobi", label: "Hobi & Olahraga" },
+  { value: "praktikum", label: "Alat Praktikum" },
   { value: "lainnya", label: "Lainnya" },
 ];
 

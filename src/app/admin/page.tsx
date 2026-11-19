@@ -90,7 +90,7 @@ export default async function AdminPage({
         </div>
 
         {/* Navigasi 4 Tab Panel Admin (PRD §7.5) */}
-        <div className="flex items-center gap-2 overflow-x-auto border-b border-[#e6e0d6] pb-3">
+        <div className="no-scrollbar flex items-center gap-2 overflow-x-auto border-b border-[#e6e0d6] pb-3">
           {tabs.map((tab) => {
             const active = activeTab === tab.key;
             return (

@@ -55,9 +55,9 @@ export function VerificationDocUploader({ profile }: { profile: Profile }) {
   };
 
   return (
-    <div className="space-y-3 rounded-xl border border-[#f8deb0] bg-[#fef6e6] p-4 text-xs text-[#92400e]">
+    <div className="space-y-3 rounded-lg border border-[#f8deb0] bg-[#fef6e6] p-4 text-xs text-[#92400e]">
       <div>
-        <p className="font-bold text-[#181512]">
+        <p className="font-bold text-[#171717]">
           Verifikasi Manual Alumni / Dosen (Tingkat 1)
         </p>
         <p className="mt-0.5 leading-relaxed">
@@ -66,20 +66,20 @@ export function VerificationDocUploader({ profile }: { profile: Profile }) {
           admin.
         </p>
         {profile.verification_status === "rejected" && profile.verification_rejection_reason && (
-          <p className="mt-2 rounded-lg border border-[#fecaca] bg-[#fef2f2] p-2.5 font-semibold text-[#991b1b]">
+          <p className="mt-2 rounded-md border border-[#fecaca] bg-[#fef2f2] p-2.5 font-semibold text-[#991b1b]">
             Alasan penolakan sebelumnya: “{profile.verification_rejection_reason}”
           </p>
         )}
       </div>
 
       {profile.verification_doc_url && profile.verification_status === "pending" ? (
-        <div className="flex items-center gap-2 rounded-lg bg-white/80 px-3 py-2 font-semibold text-[#146c43]">
+        <div className="flex items-center gap-2 rounded-md bg-white/80 px-3 py-2 font-semibold text-[#146c43]">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
           <span>Bukti identitas sudah terkirim dan sedang dalam antrean verifikasi admin.</span>
         </div>
       ) : null}
 
-      <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#b3261e] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#931d16]">
+      <label className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-md bg-[#b3261e] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#8f1c15] active:scale-[0.98] sm:w-auto">
         {uploading ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -141,7 +141,7 @@ export function SellerProfileForm({ profile }: { profile: Profile }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1 block text-xs font-bold text-[#181512]">Nama Lengkap Akun</label>
+          <label className="mb-1 block text-xs font-bold text-[#171717]">Nama Lengkap Akun</label>
           <Input
             required
             minLength={2}
@@ -155,17 +155,19 @@ export function SellerProfileForm({ profile }: { profile: Profile }) {
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-bold text-[#181512]">
+          <label className="mb-1 block text-xs font-bold text-[#171717]">
             Nomor WhatsApp Aktif
           </label>
           <Input
             required
+            type="tel"
+            inputMode="tel"
             value={whatsappNumber}
             onChange={(e) => setWhatsappNumber(e.target.value)}
             placeholder="081234567890"
             className="font-mono"
           />
-          <p className="mt-1 text-[11px] text-[#857e76]">
+          <p className="mt-1 text-[11px] text-[#8c8c8c]">
             Hanya ditampilkan ke pembeli yang sudah menyelesaikan pembayaran.
           </p>
         </div>
@@ -173,7 +175,7 @@ export function SellerProfileForm({ profile }: { profile: Profile }) {
 
       <div className="grid gap-4 sm:grid-cols-3">
         <div>
-          <label className="mb-1 block text-xs font-bold text-[#181512]">
+          <label className="mb-1 block text-xs font-bold text-[#171717]">
             Bank / E-Wallet Pencairan
           </label>
           <Select value={payoutMethod} onChange={(e) => setPayoutMethod(e.target.value)}>
@@ -186,11 +188,12 @@ export function SellerProfileForm({ profile }: { profile: Profile }) {
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-bold text-[#181512]">
+          <label className="mb-1 block text-xs font-bold text-[#171717]">
             Nomor Rekening / E-Wallet
           </label>
           <Input
             required
+            inputMode="numeric"
             pattern="[0-9]{6,20}"
             value={payoutAccountNumber}
             onChange={(e) => setPayoutAccountNumber(e.target.value.replace(/\D/g, ""))}
@@ -200,7 +203,7 @@ export function SellerProfileForm({ profile }: { profile: Profile }) {
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-bold text-[#181512]">
+          <label className="mb-1 block text-xs font-bold text-[#171717]">
             Nama Pemilik Rekening
           </label>
           <Input
@@ -212,11 +215,17 @@ export function SellerProfileForm({ profile }: { profile: Profile }) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between pt-1">
-        <p className="text-[11px] text-[#857e76]">
+      <div className="flex flex-col gap-3 border-t border-[#edf2f2] pt-3.5 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-[11px] leading-relaxed text-[#8c8c8c]">
           Demi keamanan transaksi, nama pemilik rekening wajib sama persis dengan nama lengkap akun.
         </p>
-        <Button type="submit" variant="primary" size="md" disabled={isPending}>
+        <Button
+          type="submit"
+          variant="primary"
+          size="md"
+          disabled={isPending}
+          className="w-full shrink-0 sm:w-auto"
+        >
           {isPending ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />

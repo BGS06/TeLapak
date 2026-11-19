@@ -7,6 +7,7 @@ import type { Listing } from "@/types/database";
 
 /**
  * Kartu Barang Katalog Gaya Vinted (Borderless, Rasio 3:4, Dual-Price, Merah Telkom)
+ * Dioptimalkan untuk layar sentuh Android & iOS.
  */
 export function ListingCard({ listing }: { listing: Listing }) {
   const condition = conditionOf(listing.condition);
@@ -14,7 +15,10 @@ export function ListingCard({ listing }: { listing: Listing }) {
   const cover = listing.image_urls[0] ?? "";
 
   return (
-    <Link href={`/items/${listing.id}`} className="group flex flex-col">
+    <Link
+      href={`/items/${listing.id}`}
+      className="group flex flex-col select-none transition-transform duration-150 active:scale-[0.985]"
+    >
       {/* Foto Rasio 3:4 Tanpa Bingkai Luar */}
       <div className="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-[#f2f4f4]">
         {cover ? (
@@ -23,6 +27,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
             src={cover}
             alt={listing.title}
             loading="lazy"
+            decoding="async"
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
           />
         ) : (
@@ -37,7 +42,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
         )}
 
         {/* Label Kategori Ringkas di Pojok Kiri Bawah */}
-        <span className="absolute bottom-2 left-2 rounded-md bg-white/95 px-2 py-0.5 text-[10px] font-semibold text-[#171717] shadow-2xs backdrop-blur-xs">
+        <span className="absolute bottom-2 left-2 max-w-[75%] truncate rounded-md bg-white/95 px-2 py-0.5 text-[10px] font-semibold text-[#171717] shadow-2xs backdrop-blur-xs">
           {categoryLabel(listing.category)}
         </span>
 

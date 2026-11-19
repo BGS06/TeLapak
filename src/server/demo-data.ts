@@ -172,7 +172,7 @@ export const DEMO_LISTINGS: Listing[] = [
     title: "Buku Clean Architecture & Designing Data-Intensive Apps",
     description:
       "Paket 2 buku referensi wajib mahasiswa Informatika/RPL. Kertas bersih, tidak ada coretan stabilo, sampul sudah disampul plastik rapi.",
-    category: "lainnya",
+    category: "buku",
     condition: "good",
     price_idr: 120_000,
     meeting_point: "Perpustakaan",

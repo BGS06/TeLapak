@@ -9,7 +9,17 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 type UserRole = "member" | "admin";
 type UserType = "student" | "lecturer" | "alumni";
 type VerificationStatus = "pending" | "verified" | "rejected";
-type ListingCategory = "parfum" | "aksesoris" | "elektronik" | "lainnya";
+type ListingCategory =
+  | "parfum"
+  | "aksesoris"
+  | "elektronik"
+  | "buku"
+  | "fashion"
+  | "sepatu"
+  | "kos"
+  | "hobi"
+  | "praktikum"
+  | "lainnya";
 type ListingCondition = "like_new" | "good" | "fair";
 type ListingStatus = "active" | "reserved" | "sold" | "removed";
 type OrderStatus =
