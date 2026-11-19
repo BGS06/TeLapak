@@ -26,7 +26,7 @@ export const serverEnv = {
   },
   midtransIsProduction: process.env.MIDTRANS_IS_PRODUCTION === "true",
   resendApiKey: process.env.RESEND_API_KEY,
-  emailFrom: process.env.EMAIL_FROM ?? "LapakTelu <notifikasi@lapaktelu.id>",
+  emailFrom: process.env.EMAIL_FROM ?? "TeLapak <notifikasi@telapak.id>",
   adminNotificationEmail: process.env.ADMIN_NOTIFICATION_EMAIL,
   get cronSecret() {
     return required("CRON_SECRET");

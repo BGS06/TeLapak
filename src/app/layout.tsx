@@ -30,16 +30,24 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#b3261e",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#b3261e" },
+    { media: "(prefers-color-scheme: dark)", color: "#0d1017" },
+  ],
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
   viewportFit: "cover",
 };
 
+const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('telapak-theme');var d=t?t==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;if(d)document.documentElement.classList.add('dark');}catch(e){}})();`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id">
+    <html lang="id" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="flex min-h-dvh flex-col antialiased selection:bg-[#fdeceb] selection:text-[#b3261e]">
         {children}
         <Toaster

@@ -1,12 +1,12 @@
 /**
- * Parameter bisnis LapakTelu (PRD §10 — "Keputusan Terbuka").
+ * Parameter bisnis TeLapak (PRD §10 — "Keputusan Terbuka").
  * Nilai di bawah adalah default sementara; kunci sebelum go-live.
  * Jika MIN_LISTING_PRICE_IDR diubah, sesuaikan juga CHECK constraint
  * `listings.price_idr` di migrasi database.
  */
 export const BUSINESS = {
   /** Nama produk yang tampil di UI, email, dan metadata. */
-  productName: "LapakTelu",
+  productName: "TeLapak",
   tagline: "Jual beli barang bekas antar civitas kampus, aman & tanpa ribet.",
 
   /** Komisi platform yang dipotong dari penjual (basis point; 300 = 3%). */

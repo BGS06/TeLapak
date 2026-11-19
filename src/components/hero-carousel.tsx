@@ -72,7 +72,7 @@ export function HeroCarousel({ campusName }: { campusName: string }) {
 
   return (
     <section
-      aria-label="Sorotan LapakTelu"
+      aria-label="Sorotan TeLapak"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={handleTouchStart}

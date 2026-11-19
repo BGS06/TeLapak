@@ -2,7 +2,7 @@
 
 **Versi:** 1.0 (Siap Dibangun / MVP)  
 **Tanggal:** 18 November 2026  
-**Nama Produk:** `[LapakTelu]`  
+**Nama Produk:** `[TeLapak]`  
 **Status:** Siap diserahkan ke tim/agen pengembang (Antigravity)
 
 ---

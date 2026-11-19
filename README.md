@@ -1,4 +1,4 @@
-# LapakTelu — Marketplace Barang Bekas Kampus Telkom
+# TeLapak — Marketplace Barang Bekas Kampus Telkom
 
 Aplikasi web *mobile-first* untuk jual beli barang bekas antar mahasiswa, dosen, dan alumni **Telkom University Surabaya** (dirancang sejak awal dengan arsitektur **multi-kampus** agar siap diperluas ke kampus cabang Telkom University lainnya hanya dengan menambah baris pada tabel `campuses`).
 

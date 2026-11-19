@@ -1,13 +1,15 @@
 @import "tailwindcss";
 @import "@fontsource-variable/plus-jakarta-sans";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  /* === Palet Utama Vinted === */
+  color-scheme: light;
+  /* === Palet Utama Vinted (Mode Terang) === */
   --brand-primary: #007782;
   --brand-primary-dark: #005f68;
   --brand-primary-soft: #e6f3f4;
 
-  /* === Remapping Variabel Lama ke Nuansa Vinted (Putih & Abu-abu Dingin) === */
   --bg-canvas: #ffffff;
   --bg-surface: #ffffff;
   --bg-subtle: #f2f4f4;
@@ -25,6 +27,19 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
+}
+
+html.dark {
+  color-scheme: dark;
+  /* === Palet Mode Gelap TeLapak (Soft Graphite — nyaman di mata, kontras lembut) === */
+  --bg-canvas: #111318;
+  --bg-surface: #181b22;
+  --bg-subtle: #212630;
+  --fg-primary: #eef0f4;
+  --fg-secondary: #a6aebc;
+  --fg-muted: #7b8494;
+  --border-warm: #262b36;
+  --border-strong: #343b49;
 }
 
 /* Registrasi token ke Tailwind CSS 4 agar bisa dipakai langsung sebagai utility class */
@@ -77,6 +92,154 @@
   [role="button"] {
     touch-action: manipulation;
   }
+}
+
+/* =====================================================================
+   Transisi Halus Sinkron saat Pengguna Menekan Tombol Mode Gelap/Terang
+   Seluruh permukaan, kartu, teks, border, dan ikon mengalir serentak
+   selama 320ms dengan kurva cubic-bezier(0.22, 1, 0.36, 1).
+   ===================================================================== */
+html.theme-transitioning,
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition-property: background-color, border-color, color, fill, stroke, box-shadow, filter !important;
+  transition-duration: 320ms !important;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+/* =====================================================================
+   Adaptasi Otomatis Mode Gelap (html.dark) — Soft Graphite & Low Glare
+   ===================================================================== */
+html.dark .bg-white {
+  background-color: #181b22 !important;
+}
+html.dark .bg-white\/95,
+html.dark .bg-white\/90,
+html.dark .bg-white\/80 {
+  background-color: rgba(24, 27, 34, 0.92) !important;
+}
+html.dark .bg-\[\#faf8f5\],
+html.dark .bg-\[\#faf8f5\]\/95 {
+  background-color: #14171e !important;
+}
+html.dark .bg-\[\#f2f4f4\],
+html.dark .bg-\[\#f2f4f4\]\/50,
+html.dark .bg-\[\#f2f4f4\]\/60,
+html.dark .bg-\[\#f2f4f4\]\/70,
+html.dark .bg-\[\#f3efe9\],
+html.dark .bg-\[\#ebe4db\] {
+  background-color: #212630 !important;
+}
+html.dark .bg-\[\#fdf2f2\],
+html.dark .bg-\[\#fdf2f2\]\/60,
+html.dark .bg-\[\#fdeceb\],
+html.dark .bg-\[\#fdeceb\]\/50 {
+  background-color: rgba(201, 51, 43, 0.16) !important;
+}
+html.dark .bg-\[\#e8f5ee\],
+html.dark .bg-\[\#e8f5ee\]\/60,
+html.dark .bg-\[\#e8f5ee\]\/95 {
+  background-color: rgba(22, 163, 74, 0.16) !important;
+}
+html.dark .bg-\[\#fef6e6\],
+html.dark .bg-\[\#fef6e6\]\/95 {
+  background-color: rgba(217, 119, 6, 0.15) !important;
+}
+html.dark .bg-\[\#fef2f2\],
+html.dark .bg-\[\#fef2f2\]\/60 {
+  background-color: rgba(220, 38, 38, 0.16) !important;
+}
+html.dark .bg-\[\#eef4ff\] {
+  background-color: rgba(59, 130, 246, 0.16) !important;
+}
+
+/* Footer merah di mode gelap dibuat lebih teduh agar tidak menyilaukan mata */
+html.dark footer.bg-\[\#b3261e\] {
+  background-color: #161920 !important;
+  border-top: 1px solid #262b36 !important;
+}
+
+/* Teks di Mode Gelap — Soft Pearl & Slate */
+html.dark .text-\[\#171717\],
+html.dark .text-\[\#181512\] {
+  color: #eef0f4 !important;
+}
+html.dark .text-\[\#3d3833\],
+html.dark .text-\[\#666666\],
+html.dark .text-\[\#57524c\],
+html.dark .text-\[\#6e675f\] {
+  color: #a6aebc !important;
+}
+html.dark .text-\[\#8c8c8c\],
+html.dark .text-\[\#857e76\] {
+  color: #7b8494 !important;
+}
+html.dark .text-\[\#b3261e\],
+html.dark .text-\[\#931d16\],
+html.dark .text-\[\#991b1b\] {
+  color: #f06560 !important;
+}
+html.dark .after\:bg-\[\#b3261e\]::after {
+  background-color: #f06560 !important;
+}
+html.dark .text-\[\#146c43\] {
+  color: #4ade80 !important;
+}
+html.dark .text-\[\#92400e\] {
+  color: #fbbf24 !important;
+}
+html.dark .text-\[\#1e40af\] {
+  color: #60a5fa !important;
+}
+
+/* Border & Divider di Mode Gelap */
+html.dark .border-\[\#edf2f2\],
+html.dark .border-\[\#e6e0d6\],
+html.dark .border-\[\#f3efe9\] {
+  border-color: #262b36 !important;
+}
+html.dark .border-\[\#d9dfdf\],
+html.dark .border-\[\#dcd5c9\],
+html.dark .border-\[\#cfc6b8\] {
+  border-color: #343b49 !important;
+}
+html.dark .border-\[\#b3261e\] {
+  border-color: #e0524c !important;
+}
+html.dark .border-\[\#bfe3ce\] {
+  border-color: rgba(74, 222, 128, 0.28) !important;
+}
+html.dark .border-\[\#f8deb0\] {
+  border-color: rgba(251, 191, 36, 0.28) !important;
+}
+html.dark .border-\[\#fecaca\],
+html.dark .border-\[\#f8c9c6\] {
+  border-color: rgba(248, 113, 113, 0.28) !important;
+}
+html.dark .border-\[\#c7d9fe\] {
+  border-color: rgba(96, 165, 250, 0.28) !important;
+}
+html.dark .divide-\[\#edf2f2\] > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-\[\#f3efe9\] > :not([hidden]) ~ :not([hidden]) {
+  border-color: #262b36 !important;
+}
+
+/* Hover & Focus states di Mode Gelap */
+html.dark .hover\:bg-\[\#f2f4f4\]:hover,
+html.dark .hover\:bg-\[\#f3efe9\]:hover {
+  background-color: #282e3b !important;
+}
+html.dark .hover\:bg-\[\#fdf2f2\]:hover {
+  background-color: rgba(201, 51, 43, 0.24) !important;
+}
+html.dark .focus-within\:bg-white:focus-within {
+  background-color: #181b22 !important;
+}
+
+/* Reduksi silau lembut pada gambar ilustrasi produk berlatar terang saat Mode Gelap */
+html.dark img {
+  filter: brightness(0.94) contrast(1.02);
 }
 
 .tabular-nums {

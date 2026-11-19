@@ -68,7 +68,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
             {formatIDR(fees.totalPaid)}
           </p>
           <span
-            title="Termasuk Perlindungan Transaksi LapakTelu"
+            title="Termasuk Perlindungan Transaksi TeLapak"
             className="inline-flex items-center text-[#b3261e]"
           >
             <ShieldCheck className="h-3.5 w-3.5 shrink-0" />

@@ -86,7 +86,7 @@ export function MockPayClient({
       {/* Kotak Visual QRIS / E-Wallet */}
       <div className="rounded-2xl border border-[#e6e0d6] bg-[#faf8f5] p-5 text-center space-y-3">
         <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-[#57524c]">
-          <span>LAPAKTELU • TEL-U SURABAYA</span>
+          <span>TELAPAK • TEL-U SURABAYA</span>
           <span className="font-mono">NMID: ID20261119{orderCode(orderId)}</span>
         </div>
 

@@ -14,25 +14,25 @@ const QUICK_ACCOUNTS = [
     label: "Raka (Pembeli Mahasiswa)",
     roleHint: "Siap beli barang & uji QRIS",
     email: "raka@student.telkomuniversity.ac.id",
-    password: "LapakTelu123!",
+    password: "TeLapak123!",
   },
   {
     label: "Nadia (Penjual Mahasiswa)",
     roleHint: "Pemilik parfum HMNS & sleeve",
     email: "nadia@student.telkomuniversity.ac.id",
-    password: "LapakTelu123!",
+    password: "TeLapak123!",
   },
   {
     label: "Dimas (Penjual Alumni)",
     roleHint: "Alumni terverifikasi",
     email: "dimas.alumni@gmail.com",
-    password: "LapakTelu123!",
+    password: "TeLapak123!",
   },
   {
     label: "Alya (Admin Kampus)",
     roleHint: "Akses /admin (Verifikasi, Sengketa, Payout)",
     email: "admin@telkomuniversity.ac.id",
-    password: "LapakTelu123!",
+    password: "TeLapak123!",
   },
 ] as const;
 

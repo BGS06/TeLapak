@@ -60,7 +60,7 @@ export async function checkoutListingAction(
     const invoice = await provider.createInvoice({
       orderId: order.id,
       amountIdr: order.total_paid_idr,
-      itemName: listing?.title ?? "Barang LapakTelu",
+      itemName: listing?.title ?? "Barang TeLapak",
       itemPriceIdr: order.item_price_idr,
       serviceFeeIdr: order.gateway_fee_idr,
       customer: { name: profile.full_name, email: profile.email },

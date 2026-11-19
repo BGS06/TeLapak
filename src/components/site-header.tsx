@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChevronDown, MapPin, Package, Plus, Search, ShieldCheck, User } from "lucide-react";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { BUSINESS } from "@/config/business";
 import { CATEGORIES } from "@/config/constants";
 import { isSupabaseConfigured } from "@/lib/env";
@@ -73,6 +74,8 @@ export async function SiteHeader({
 
             {/* Aksi Kanan */}
             <nav className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+              <ThemeToggle />
+
               {profile?.role === "admin" && (
                 <Link
                   href="/admin"

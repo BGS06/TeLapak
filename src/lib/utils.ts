@@ -48,8 +48,8 @@ export function formatRelative(iso: string, now = Date.now()) {
   return formatDate(iso);
 }
 
-/** Kode pesanan pendek yang ramah dibaca manusia, mis. "LT-8F3A2C". */
-export const orderCode = (id: string) => `LT-${id.replace(/-/g, "").slice(0, 6).toUpperCase()}`;
+/** Kode pesanan pendek yang ramah dibaca manusia, mis. "TL-8F3A2C". */
+export const orderCode = (id: string) => `TL-${id.replace(/-/g, "").slice(0, 6).toUpperCase()}`;
 
 /** Normalisasi nomor WhatsApp Indonesia ke format 628xxxxxxxxx. Null jika tidak valid. */
 export function normalizeWhatsApp(input: string): string | null {

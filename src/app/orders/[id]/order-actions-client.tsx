@@ -106,7 +106,7 @@ export function PaidHeldActions({
       return;
     }
     const text = [
-      `Halo Kak ${sellerName}, saya pembeli *${itemTitle}* di LapakTelu (Pesanan *${orderCode(orderId)}*).`,
+      `Halo Kak ${sellerName}, saya pembeli *${itemTitle}* di TeLapak (Pesanan *${orderCode(orderId)}*).`,
       `Pembayaran sudah berhasil dan dana ditahan sementara di platform.`,
       `Kapan kita bisa janjian serah terima di *${meetingPoint}*?`,
     ].join("\n");

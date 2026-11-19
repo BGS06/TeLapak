@@ -1,5 +1,5 @@
 /**
- * Tipe database LapakTelu — mengikuti format `supabase gen types typescript`.
+ * Tipe database TeLapak — mengikuti format `supabase gen types typescript`.
  * Regenerasi otomatis setelah migrasi berubah:
  *   npx supabase gen types typescript --project-id <id> > src/types/database.ts
  */
