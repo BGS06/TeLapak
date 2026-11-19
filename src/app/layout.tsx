@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { Toaster } from "sonner";
 import { BUSINESS } from "@/config/business";
 import { publicEnv } from "@/lib/env";
@@ -58,6 +59,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             className: "text-xs sm:text-sm rounded-2xl shadow-lg",
           }}
         />
+        <Analytics />
       </body>
     </html>
   );
