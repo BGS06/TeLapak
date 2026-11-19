@@ -340,7 +340,7 @@ export interface AdminReportItem {
 }
 
 export async function getAdminDashboardData() {
-  if (!isSupabaseConfigured) {
+  if (!isSupabaseConfigured || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return {
       verifications: [] as AdminVerificationItem[],
       disputes: [] as AdminDisputeItem[],

@@ -6,14 +6,33 @@
 function required(name: string, value: string | undefined): string {
   if (!value) {
     throw new Error(
-      `[env] ${name} belum diisi. Salin .env.example menjadi .env.local lalu lengkapi nilainya.`,
+      `[env] ${name} belum diisi. Pastikan Environment Variables sudah diatur di .env.local / Vercel.`,
     );
   }
   return value;
 }
 
+function resolveSiteUrl(): string {
+  const explicit = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  const onVercel = Boolean(process.env.VERCEL || process.env.VERCEL_URL);
+
+  // Jika di Vercel namun NEXT_PUBLIC_SITE_URL masih tertulis localhost, gunakan domain Vercel otomatis.
+  if (explicit && !(onVercel && explicit.includes("localhost"))) {
+    return explicit.replace(/\/$/, "");
+  }
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  return (explicit || "http://localhost:3000").replace(/\/$/, "");
+}
+
 export const publicEnv = {
-  siteUrl: (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, ""),
+  get siteUrl() {
+    return resolveSiteUrl();
+  },
   defaultCampusSlug: process.env.NEXT_PUBLIC_DEFAULT_CAMPUS_SLUG ?? "tel-u-surabaya",
   get supabaseUrl() {
     return required("NEXT_PUBLIC_SUPABASE_URL", process.env.NEXT_PUBLIC_SUPABASE_URL);

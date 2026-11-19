@@ -167,7 +167,11 @@ export function ItemActions({
         return;
       }
       toast.success("Pesanan dibuat! Mengarahkan ke halaman pembayaran...");
-      window.location.href = res.data.paymentUrl;
+      if (res.data.paymentUrl.startsWith("/")) {
+        router.push(res.data.paymentUrl);
+      } else {
+        window.location.href = res.data.paymentUrl;
+      }
     });
   };
 

@@ -51,11 +51,15 @@ export function PendingPaymentActions({
     });
   };
 
+  const safePaymentUrl = paymentUrl?.includes("/pay/mock/")
+    ? `/pay/mock/${orderId}`
+    : paymentUrl;
+
   return (
     <div className="flex flex-col gap-2.5 sm:flex-row">
-      {paymentUrl && (
+      {safePaymentUrl && (
         <Button asChild variant="primary" size="lg" className="flex-1">
-          <a href={paymentUrl}>
+          <a href={safePaymentUrl}>
             Bayar Sekarang (QRIS / E-Wallet)
             <ExternalLink className="h-4 w-4" />
           </a>

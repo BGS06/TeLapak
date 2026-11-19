@@ -1,8 +1,12 @@
 import "server-only";
 
 function required(name: string): string {
-  const value = process.env[name];
-  if (!value) throw new Error(`[env] ${name} belum diisi (lihat .env.example).`);
+  const value = process.env[name]?.trim();
+  if (!value) {
+    throw new Error(
+      `Variabel ${name} belum diisi di pengaturan Environment Variables Vercel / .env.local.`,
+    );
+  }
   return value;
 }
 
@@ -12,12 +16,9 @@ export const serverEnv = {
     return required("SUPABASE_SERVICE_ROLE_KEY");
   },
   get paymentProvider(): "mock" | "midtrans" {
-    const value = process.env.PAYMENT_PROVIDER ?? "mock";
+    const value = (process.env.PAYMENT_PROVIDER ?? "mock").trim();
     if (value !== "mock" && value !== "midtrans") {
       throw new Error(`[env] PAYMENT_PROVIDER tidak dikenal: ${value}`);
-    }
-    if (value === "mock" && process.env.VERCEL_ENV === "production") {
-      throw new Error("[env] PAYMENT_PROVIDER=mock tidak boleh dipakai di production.");
     }
     return value;
   },
