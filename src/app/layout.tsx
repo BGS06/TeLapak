@@ -27,6 +27,9 @@ export const metadata: Metadata = {
     title: `${BUSINESS.productName} — Jual Beli Barang Bekas Kampus Telkom`,
     description: BUSINESS.tagline,
   },
+  other: {
+    "strix-verification": "strix-verify-0c327fbadb32f152387ced74c9119bab",
+  },
 };
 
 export const viewport: Viewport = {
